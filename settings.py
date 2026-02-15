@@ -4,6 +4,8 @@ import json
 CONFIG_PATH = os.path.expanduser("~/.nuke/templatemanager.json")
 
 def  get_config_path():
+    folder = os.path.dirname(CONFIG_PATH)
+    os.makedirs(folder, exist_ok=True)
     return CONFIG_PATH
 
 def load_user_template_path():
