@@ -98,17 +98,12 @@ def open_template_manager():
             nuke.message(f"Selected label not found:\n{selected}") # type: ignore
             return
         if tpl.get("status") != "OK":
-<<<<<<< HEAD
-            nuke.message(f"Template not OK: {tpl.get('status')}") # type: ignore
-            return
-=======
             if tpl.get("status") == "MISSING_NODES":
-                nuke.message(f"Missing: {tpl.get('missing_nodes')}")
+                nuke.message(f"Missing: {tpl.get('missing_nodes')}") # type: ignore
                 return
             else:
-                nuke.message(f"Template not OK: {tpl.get('status')}")
+                nuke.message(f"Template not OK: {tpl.get('status')}") # type: ignore
                 return
->>>>>>> 6eda2f3 (Bug Fix)
         paste_template(tpl)
     except ImportError:
         return None
