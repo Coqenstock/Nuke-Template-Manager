@@ -5,7 +5,7 @@ from scanner import scan_templates, Template
 def is_running_in_nuke():
     try:
         import nuke
-        return hasattr(nuke, "nodeT")
+        return hasattr(nuke, "nodeType")
     except ImportError:
         return False
 
@@ -24,11 +24,11 @@ def get_available_nodes():
 
 def make_label(t: Template) -> str:
     if t["status"] == "OK":
-        return t["name"] + ": OK"
+        return t["name"] + ":OK"
     elif t["status"] == "MISSING_NODES":
-        return "{}: MISSING({})". format(t["name"], len(t["missing_nodes"]))
+        return "{}:MISSING({})". format(t["name"], len(t["missing_nodes"]))
     else:
-        return t["name"] + ": ERROR"
+        return t["name"] + ":ERROR"
     
 def paste_template(tpl: Template) -> None:
     nk_path: str = tpl["path"]
@@ -76,54 +76,32 @@ def start() -> list[Template]:
 
 def open_template_manager():
     path: str = settings.get_effective_template_path()
-    templates = start() 
+    templates = start()
+    label_to_template = {}
     labels = []
     for t in templates:
-        label = make_label(t)
+        label = make_label(t).replace("|", "/")
+        label = label.replace(" ", "_")
         labels.append(label)
-    print("LABEL COUNT:", len(labels))
-    for t in labels[:3]:
-        print(t)
-    if labels:
-        print("Last", labels[-1])
+        label_to_template[label] = t
     try:
         import nuke
         if not labels:
-            print("No Templates Found in", path)
+            nuke.message(f"No Templates Found in\n{path}")
             return
         p = nuke.Panel("Template Manager")
-        enum = "|".join(labels)
-        p.addEnumerationPulldown("Template",enum)
-        p.addButton("Paste")
-        result = p.show()
-        if not result:
-            print("User cancelled")
+        p.addEnumerationPulldown("Template", " ".join(labels))
+        if not p.show():
             return
-        button = p.clickedButton()
-        print("BUTTON:", button)
-        print("PANEL RESULT", result)
         selected = p.value("Template")
-        selected_template = None
-        for t in templates:
-            if selected == make_label(t):
-                selected_template = t
-                break
-        if selected_template is None:
-            print("Warning")
+        tpl = label_to_template.get(selected)
+        if not tpl:
+            nuke.message(f"Selected label not found:\n{selected}")
             return
-        else:
-            print("NAME:", selected_template["name"])
-            print("STATUS:", selected_template["status"])
-            print("PATH:", selected_template["path"])
-        if button != "Paste":
-            print("Not pasting, clicked:", button)
+        if tpl.get("status") != "OK":
+            nuke.message(f"Template not OK: {tpl.get('status')}")
             return
-        print("SELECTED:", selected)
-        if selected_template["status"] != "OK":
-            print("Error", selected_template['status'])
-            return
-        else:
-            paste_template(selected_template)
+        paste_template(tpl)
     except ImportError:
         return None
 
