@@ -2,18 +2,19 @@
 import os
 import settings
 from scanner import scan_templates, Template
+import time
 def is_running_in_nuke():
     try:
         import nuke
         return hasattr(nuke, "nodeTypes")
     except ImportError:
-        return None
+        return False
 
 def get_available_nodes():
     if is_running_in_nuke():
         import nuke
         try:
-            available_nodes: set[str] = set(nuke.nodeTypes(force_plugin_load=True)) # type: ignore
+            available_nodes: set[str] = set(nuke.nodeTypes()) # type: ignore
         except TypeError:
             available_nodes: set[str] = set(nuke.nodeTypes()) # type: ignore
     else:
@@ -50,8 +51,14 @@ def paste_template(tpl: Template) -> None:
 def start() -> list[Template]:
     path: str = settings.get_effective_template_path()
     os.makedirs(path, exist_ok=True)
+    t0 = time.perf_counter()
     available_nodes = get_available_nodes()
+    t1 = time.perf_counter()
     templates: list[Template] = scan_templates(path, available_nodes)
+    t2 = time.perf_counter()
+    print(f"[PERF] get_available_nodes: {t1 - t0:.3f}s")
+    print(f"[PERF] scan_templates: {t2 - t1:.3f}s")
+    print(f"[PERF] total start(): {t2 - t0:.3f}s")
     def format_missing_nodes(t: Template, limit: int=5):
         if t["status"] != "MISSING_NODES":
             return None
@@ -75,34 +82,34 @@ def start() -> list[Template]:
 
 def open_template_manager():
     path: str = settings.get_effective_template_path()
-    templates: list[Template] = start()
-    label_to_template: dict[str, Template] = {}
-    labels: list[str] = []
+    templates = start()
+    label_to_template = {}
+    labels = []
     for t in templates:
-        label: str = make_label(t).replace("|", "/")
-        label: str = label.replace(" ", "_")
+        label = make_label(t).replace("|", "/")
+        label = label.replace(" ", "_")
         labels.append(label)
         label_to_template[label] = t
     try:
         import nuke
         if not labels:
-            nuke.message(f"No Templates Found in\n{path}") # type: ignore
+            nuke.message(f"No Templates Found in\n{path}")
             return
-        p = nuke.Panel("Template Manager") # type: ignore
-        p.addEnumerationPulldown("Template", " ".join(labels)) # type: ignore
-        if not p.show(): # type: ignore
+        p = nuke.Panel("Template Manager")
+        p.addEnumerationPulldown("Template", " ".join(labels))
+        if not p.show():
             return
-        selected = p.value("Template") # type: ignore
-        tpl: Template | None = label_to_template.get(selected) # pyright: ignore[reportUnknownArgumentType]
+        selected = p.value("Template")
+        tpl = label_to_template.get(selected)
         if not tpl:
-            nuke.message(f"Selected label not found:\n{selected}") # type: ignore
+            nuke.message(f"Selected label not found:\n{selected}")
             return
         if tpl.get("status") != "OK":
             if tpl.get("status") == "MISSING_NODES":
-                nuke.message(f"Missing: {tpl.get('missing_nodes')}") # type: ignore
+                nuke.message(f"Missing: {tpl.get('missing_nodes')}")
                 return
             else:
-                nuke.message(f"Template not OK: {tpl.get('status')}") # type: ignore
+                nuke.message(f"Template not OK: {tpl.get('status')}")
                 return
         paste_template(tpl)
     except ImportError:
