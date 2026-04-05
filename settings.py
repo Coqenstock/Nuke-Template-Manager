@@ -1,35 +1,44 @@
 import os
 import json
 
-CONFIG_PATH = os.path.expanduser("~/.nuke/templatemanager.json")
+STUDIO_ENV_VAR = "STUDIO_TEMPLATE_CONFIG"
+LOCAL_CONFIG_PATH = os.path.expanduser("~/.nuke/templatemanager.json")
+DEFAULT_TEMPLATE_PATH = os.path.expanduser("~/.nuke/templates")
 
-def  get_config_path():
-    folder = os.path.dirname(CONFIG_PATH)
-    os.makedirs(folder, exist_ok=True)
-    return CONFIG_PATH
+def get_config_path() -> str:
+    studio_path = os.getenv(STUDIO_ENV_VAR)
+    if studio_path and os.path.exists(studio_path):
+        return studio_path
+    os.makedirs(os.path.dirname(LOCAL_CONFIG_PATH), exist_ok=True)
+    return LOCAL_CONFIG_PATH
 
-def load_user_template_path():
-    if os.path.exists(get_config_path()):
+def load_config_data() -> dict:
+    config_path = get_config_path()
+    if os.path.exists(config_path):
         try:
-            with open (get_config_path()) as f:
-                content = f.read()
-                data = json.loads(content)
-                template_path = data ["template_path"]
-                if isinstance(template_path, str):
-                    return template_path
-                else:
-                    return None
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
         except Exception:
-            return None
-    else: 
-      return None
+            pass
+    return {}
 
-def get_effective_template_path():
-    user_path = load_user_template_path()
-    if user_path is None:
-        return os.path.expanduser("~/.nuke/templates")
-    else:
-        if os.path.isdir(user_path):
-            return user_path
-        else:
-            return os.path.expanduser("~/.nuke/templates")
+def get_effective_template_paths() -> list[str]:
+    data = load_config_data()
+    paths = data.get("template_paths", [])
+    if not paths:
+        legacy_path = data.get("template_path")
+        if isinstance(legacy_path, str):
+            paths = [legacy_path]
+    valid_paths = [p for p in paths if os.path.isdir(p)]
+    if not valid_paths:
+        if os.path.isdir(DEFAULT_TEMPLATE_PATH):
+            return [DEFAULT_TEMPLATE_PATH]
+        return []
+        
+    return valid_paths
+
+def get_tags() -> list[str]:
+    return load_config_data().get("tags", [])
+
+def use_folder_categories() -> bool:
+    return load_config_data().get("use_folder_categories", True)
