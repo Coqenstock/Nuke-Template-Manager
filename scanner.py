@@ -1,7 +1,7 @@
 import re
 import os
 from typing import TypedDict
-
+NODE_FINDER: re.Pattern[str] = re.compile(r"^(\s*)([A-Z][A-Za-z0-9_\.]*)\s*\{([^\n]*)$", re.MULTILINE)
 
 def list_nk_files(folder_path: str) -> list[str]:
     return (
@@ -29,6 +29,7 @@ def scan_templates(
     folder_path: str, available_nodes: set[str], ignored_words: set[str] = IGNORED_WORDS
 ) -> list[Template]:
     templates: list[Template] = []
+    ofxnames = {x.lower().replace(" ", "") for x in available_nodes} # type: ignore
     for path in list_nk_files(folder_path):  # Pour tous les éléments de NK_FILES
         filename: str = os.path.basename(path)  # nom de fichier.nk
         display_name: str = os.path.splitext(filename)[0]  # nom de fichier sans le .nk
@@ -44,11 +45,12 @@ def scan_templates(
                 path, "r", encoding="utf-8", errors="replace"
             ) as f:  # ouvrir fichier puis fermer quand c'est fini
                 text = f.read()  # lire le texte
-            NODE_FINDER: re.Pattern[str] = re.compile(r"^(\s*)([A-Z][A-Za-z0-9_]*)\s*\{", re.MULTILINE)
-            found_pairs: list[tuple[str, str]] = NODE_FINDER.findall(text)
-            found: list[str] = [
-                name for indent, name in found_pairs if indent == ""
-            ]  # utiliser la fonction regex pour trouver les noms de noeuds
+            found_matches: list[tuple[str, str, str]] = NODE_FINDER.findall(text)
+            found: list[str] = []
+            for indent, name, extra_text in found_matches:
+                if indent == "":
+                    if extra_text.strip() == "" or name.startswith("OFX"):
+                        found.append(name)  # utiliser la fonction regex pour trouver les noms de noeuds
             found_unique: list[str] = sorted(
                 set([s.strip() for s in found]) - ignored_words
             )  # enlever root 
@@ -61,6 +63,13 @@ def scan_templates(
                     base = base[:-1]
                 if base in available_nodes:
                     continue
+                if cls.startswith("OFX"):
+                    core_name = cls.split('.')[-1].lower()
+                    core_name = core_name.split('_')[0]
+                    while core_name and core_name[-1].isdigit():
+                        core_name = core_name[:-1]
+                    if any(core_name in node for node in ofxnames):
+                        continue 
                 missing.append(cls)
             tpl["missing_nodes"] = sorted(
                 missing
