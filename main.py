@@ -6,7 +6,6 @@ from .ui import TemplateManagerUI
 def launch_ui():
     paths: list[str] = settings.get_effective_template_paths()
     nodes: set[str] = get_available_nodes()
-    tags: list[str] = settings.get_tags()
     has_stamps = False
     try:
         import stamps
@@ -19,5 +18,5 @@ def launch_ui():
         all_templates.extend(scan_templates(path, nodes))
         
     global tm_window 
-    tm_window = TemplateManagerUI(all_templates, tags, has_stamps)
+    tm_window = TemplateManagerUI(all_templates, has_stamps)
     tm_window.show()
