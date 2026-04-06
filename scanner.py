@@ -1,5 +1,6 @@
 import re
 import os
+from . import settings
 from typing import TypedDict
 NODE_FINDER: re.Pattern[str] = re.compile(r"^([ \t]*)([A-Z][A-Za-z0-9_\.]*)[ \t]*\{([^\n]*)$", re.MULTILINE)
 
@@ -33,28 +34,37 @@ class Template(TypedDict):
     missing_nodes: list[str]
     errors: str | None
     status: str | None
-
+    is_stamps: bool | None
+    tags: list[str]
 
 def scan_templates(
     folder_path: str, available_nodes: set[str], ignored_words: set[str] = IGNORED_WORDS
 ) -> list[Template]:
     templates: list[Template] = []
     ofxnames = {x.lower().replace(" ", "") for x in available_nodes} # type: ignore
+    metadata = settings.load_metadata()
     for path in list_nk_files(folder_path):  # Pour tous les éléments de NK_FILES
         filename: str = os.path.basename(path)  # nom de fichier.nk
         display_name: str = os.path.splitext(filename)[0]  # nom de fichier sans le .nk
+        tags = metadata.get(filename, [])
         tpl: Template = {
             "name": display_name,
             "path": path,
             "missing_nodes": [],
             "errors": None,
             "status": None,
+            "is_stamps": None,
+            "tags": tags,
         }  # dans la liste y a le nom le chemin d'accès, si il y a des noeuds qui manquent ou si y a des erreurs genre si ça crash
         try:
             with open(
                 path, "r", encoding="utf-8", errors="replace"
             ) as f:  # ouvrir fichier puis fermer quand c'est fini
-                text = f.read()  # lire le texte
+                text = f.read()  # lire le text
+            is_stamps = False
+            if "import stamps" in text or "Anchor Stamp" in text or "Stamps by Adrian Pueyo" in text:
+                is_stamps = True
+            tpl["is_stamps"] = is_stamps
             found_matches: list[tuple[str, str, str]] = NODE_FINDER.findall(text)
             found: list[str] = []
             for indent, name, extra_text in found_matches:
