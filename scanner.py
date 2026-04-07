@@ -15,11 +15,9 @@ def is_running_in_nuke():
 def list_nk_files(folder_path: str) -> list[str]:
     nk_files = []
     if os.path.isdir(folder_path):
-        # os.walk unpacks 3 things: the current folder path, subfolders, and files
         for root_folder, subfolders, files in os.walk(folder_path):
             for f in files:
                 if f.lower().endswith(".nk"):
-                    # Join the file to whatever specific subfolder it was found in!
                     full_path = os.path.join(root_folder, f)
                     nk_files.append(full_path)
                     

@@ -21,10 +21,7 @@ def load_config_data() -> dict:
                 data = json.load(f)
                 return data
         except Exception as e:
-            # FIX: Added a print statement so this block is no longer empty!
             print(f"Error reading config: {e}")
-            
-    # FIX: A clean catch-all return if the file doesn't exist or crashes
     return {}
 
 def get_effective_template_paths() -> list[str]:
