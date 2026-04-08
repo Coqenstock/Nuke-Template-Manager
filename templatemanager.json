@@ -1,11 +1,5 @@
 {
     "template_paths": [
-        "/Users/marco/.nuke/templates"
+        "/Path/to/Folder"
     ],
-    "tags": [
-        "CG",
-        "Keying",
-        "Cleanup",
-        "Lighting"
-    ]
 }

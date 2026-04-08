@@ -21,9 +21,9 @@ class TemplateManagerUI(QtWidgets.QDialog):
         self.layout.addWidget(self.search_bar, 0, 0, 1, 2)
         unique_tags = {tag for t in self.alltemplates for tag in t.get("tags", [])}
         autocomplete_list = sorted([f"@{tag}" for tag in unique_tags])
-        completer = QtWidgets.QCompleter(autocomplete_list)
-        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self.search_bar.setCompleter(completer)
+        self.completer = QtWidgets.QCompleter(autocomplete_list)
+        self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.search_bar.setCompleter(self.completer)
         self.tabs = QtWidgets.QTabWidget()
         self.category_lists = {}
         self.build_tabs()
@@ -44,6 +44,9 @@ class TemplateManagerUI(QtWidgets.QDialog):
         for cat in sorted(categories):
             tree_widget = QtWidgets.QTreeWidget()
             tree_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+            tree_widget.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+            tree_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu) 
+            tree_widget.customContextMenuRequested.connect(self.open_context_menu) 
             tree_widget.itemChanged.connect(self.save_inline_tags)
             tree_widget.setHeaderLabels(["Template Name", "Status", "Tags"])
             tree_widget.setColumnCount(3)
@@ -127,10 +130,21 @@ class TemplateManagerUI(QtWidgets.QDialog):
             tpl = item.data(0, QtCore.Qt.UserRole)
             new_tags_str = item.text(2)
             new_tags = [t.strip() for t in new_tags_str.split(",") if t.strip()]
+            for master_tpl in self.alltemplates:
+                if master_tpl["path"] == tpl["path"]:
+                    master_tpl["tags"] = new_tags
+                    break
             tpl["tags"] = new_tags
             item.setData(0, QtCore.Qt.UserRole, tpl)
             filename = os.path.basename(tpl["path"])
             settings.save_metadata(filename, new_tags)
+            if new_tags:
+                first_tag = new_tags[0]
+                color = self.get_tag_color(first_tag) 
+                item.setForeground(2, QtGui.QBrush(color))
+            else:
+                item.setForeground(2, QtGui.QBrush(QtGui.QColor(200, 200, 200)))
+            self.update_autocomplete()
     def import_from_button(self):
         current_tab = self.tabs.currentWidget()
         selected_items = current_tab.selectedItems()
@@ -140,6 +154,44 @@ class TemplateManagerUI(QtWidgets.QDialog):
         item = selected_items[0]
         self.import_template(item, 0)
     def get_tag_color (self, tag_string):
-        hue = sum(ord(char) for char in tag_string) * 45 % 360
+        tag_string = tag_string.strip().lower()
+        hue = sum(ord(char) * (i + 1) for i, char in enumerate(tag_string))
+        hue = (hue * 45) % 360
         return QtGui.QColor.fromHsv(hue, 150, 255)
+    def update_autocomplete(self):
+        unique_tags = {tag for t in self.alltemplates for tag in t.get("tags", [])}
+        autocomplete_list = sorted([f"@{tag}" for tag in unique_tags])
+        model = QtCore.QStringListModel()
+        model.setStringList(autocomplete_list)
+        self.completer.setModel(model)
+    def open_context_menu(self, position):
+        current_tab = self.tabs.currentWidget()
+        selected_items = current_tab.selectedItems()
+        if not selected_items:
+            return
+        menu = QtWidgets.QMenu()
+        batch_tag_action = menu.addAction(f"Batch Tag ({len(selected_items)} selected)")
+        action = menu.exec_(current_tab.viewport().mapToGlobal(position))
+        if action == batch_tag_action:
+            new_tags_str = nuke.getInput("Enter tags separated by commas):", "")
+            if new_tags_str is None:
+                return
+            new_tags = [t.strip() for t in new_tags_str.split(",") if t.strip()]
+            for item in selected_items:
+                tpl = item.data(0, QtCore.Qt.UserRole)
+                for master_tpl in self.alltemplates:
+                    if master_tpl["path"] == tpl["path"]:
+                        master_tpl["tags"] = new_tags
+                        break
+                tpl["tags"] = new_tags
+                item.setData(0, QtCore.Qt.UserRole, tpl)
+                filename = os.path.basename(tpl["path"])
+                settings.save_metadata(filename, new_tags)
+                item.setText(2, ", ".join(new_tags))
+                if new_tags:
+                    color = self.get_tag_color(new_tags[0])
+                    item.setForeground(2, QtGui.QBrush(color))
+                else:
+                    item.setForeground(2, QtGui.QBrush(QtGui.QColor(200, 200, 200)))
+            self.update_autocomplete()
         
