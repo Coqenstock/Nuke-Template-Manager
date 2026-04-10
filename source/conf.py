@@ -6,7 +6,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../..'))
-autodoc_mock_imports = ['nuke', 'PySide2', 'PySide6']
+autodoc_mock_imports = ["nuke", "PySide2", "PySide6", "PyQt5"]
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
