@@ -13,8 +13,8 @@ A template manager for Nuke that organizes scripts using folders and tags. It au
 import nuke
 from Template_Manager.main import launch_ui
 
-nuke.menu("Nuke").addMenu("Pipeline Tools").addCommand("Template Manager", launch_ui, "ctrl+t")"""
-
+nuke.menu("Nuke").addMenu("Pipeline Tools").addCommand("Template Manager", launch_ui, "ctrl+t")
+```
 ## Documentation
 
 This tool includes a fully searchable, automated Sphinx manual detailing the core logic, classes, and parsing algorithms.
