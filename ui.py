@@ -1,3 +1,10 @@
+"""PySide graphical user interface for the Nuke Template Manager.
+
+This module builds the interactive Qt dialog used by artists to browse, 
+search, tag, and import Nuke scripts. It handles dynamic UI generation, 
+memory synchronization between disk and RAM, and dependency interception.
+"""
+
 import os
 import nuke
 from . import settings
@@ -8,6 +15,15 @@ except ImportError:
 from .scanner import paste_template
 
 class TemplateManagerUI(QtWidgets.QDialog):
+    """The main user interface dialog for the Template Manager.
+
+    This class builds a tabbed UI organized by directory, featuring predictive 
+    search filtering, inline editable tagging, and a procedural color-hashing system.
+
+    Args:
+        templates (list[dict]): The master list of scanned template dictionaries.
+        has_stamps (bool): True if the local environment successfully loaded the Stamps plugin.
+    """
     def __init__(self, templates, has_stamps,):
         super().__init__()
         self.alltemplates = templates
@@ -15,31 +31,51 @@ class TemplateManagerUI(QtWidgets.QDialog):
         self.setWindowTitle("Template Manager")
         self.resize(1000, 1000)
         self.layout = QtWidgets.QGridLayout(self)
+        
+        # Search Bar Setup
         self.search_bar = QtWidgets.QLineEdit()
         self.search_bar.setPlaceholderText("Search templates...")
         self.search_bar.textChanged.connect(self.filter_templates)
         self.layout.addWidget(self.search_bar, 0, 0, 1, 2)
+        
+        # Autocomplete Setup
         unique_tags = {tag for t in self.alltemplates for tag in t.get("tags", [])}
         autocomplete_list = sorted([f"@{tag}" for tag in unique_tags])
         self.completer = QtWidgets.QCompleter(autocomplete_list)
         self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.search_bar.setCompleter(self.completer)
+        
+        # UI Layout Setup
         self.tabs = QtWidgets.QTabWidget()
         self.category_lists = {}
         self.build_tabs()
         self.layout.addWidget(self.tabs, 1, 0, 1, 2)
+        
+        # Buttons
         self.close_btn = QtWidgets.QPushButton("Close Manager")
         self.close_btn.clicked.connect(self.close)
         import_btn = QtWidgets.QPushButton("Import Selected")
         import_btn.clicked.connect(self.import_from_button)
         self.layout.addWidget(self.close_btn, 2, 0, 1, 1)
         self.layout.addWidget(import_btn, 2, 1, 1, 1)
+        
+        # Initial Population
         self.populate_lists(self.alltemplates)
+
     def get_category(self, path):
+        """Extracts a human-readable category name from a file path.
+
+        Args:
+            path (str): The absolute file path to the template.
+
+        Returns:
+            str: The title-cased name of the parent folder.
+        """
         folder_name = os.path.basename(os.path.dirname(path))
         return folder_name.replace("_", " ").title()
 
     def build_tabs(self):
+        """Dynamically generates QTreeWidgets grouped by folder categories."""
         categories = set(self.get_category(t["path"]) for t in self.alltemplates)
         for cat in sorted(categories):
             tree_widget = QtWidgets.QTreeWidget()
@@ -57,6 +93,15 @@ class TemplateManagerUI(QtWidgets.QDialog):
             self.category_lists[cat] = tree_widget
 
     def populate_lists(self, list_of_templates):
+        """Populates the QTreeWidgets with items from a given template list.
+
+        This method applies custom visual styling based on template status, 
+        including missing node warnings, procedural tag colors, and blue 
+        text formatting for templates utilizing proprietary tools (e.g., Stamps).
+
+        Args:
+            list_of_templates (list[dict]): The templates to display.
+        """
         for list_widget in self.category_lists.values():
             list_widget.blockSignals(True)
             list_widget.clear()
@@ -91,6 +136,11 @@ class TemplateManagerUI(QtWidgets.QDialog):
             tree.blockSignals(False)
 
     def filter_templates(self): 
+        """Filters the displayed templates based on the search bar input.
+        
+        This method parses the search string for standard text queries 
+        as well as '@' prefix tags, updating the UI to show only matches.
+        """
         search_term = self.search_bar.text().lower().split()
         names_queries = []
         tag_queries = []
@@ -109,6 +159,16 @@ class TemplateManagerUI(QtWidgets.QDialog):
         self.populate_lists(filtered)
 
     def import_template(self, item, column):
+        """Handles the double-click event to import a template into Nuke.
+
+        If the template is missing OFX plugins, this intercepts the standard 
+        Nuke paste operation and displays a forced-acknowledgment warning 
+        dialog to prevent silent pipeline errors.
+
+        Args:
+            item (QtWidgets.QTreeWidgetItem): The UI item that was clicked.
+            column (int): The index of the clicked column.
+        """
         tpl = item.data(0, QtCore.Qt.UserRole)
         if column == 0:
             if tpl["status"] == "OK":
@@ -126,6 +186,16 @@ class TemplateManagerUI(QtWidgets.QDialog):
             item.treeWidget().editItem(item, column)
 
     def save_inline_tags(self, item, column):
+        """Updates metadata and syncs memory state after inline editing.
+
+        This method solves a UI desynchronization issue by updating the modified 
+        tags in three distinct places simultaneously: the physical JSON file, 
+        the master Python memory list (`self.alltemplates`), and the Qt Item data.
+
+        Args:
+            item (QtWidgets.QTreeWidgetItem): The UI item being edited.
+            column (int): The index of the edited column.
+        """
         if column == 2: 
             tpl = item.data(0, QtCore.Qt.UserRole)
             new_tags_str = item.text(2)
@@ -146,6 +216,7 @@ class TemplateManagerUI(QtWidgets.QDialog):
                 item.setForeground(2, QtGui.QBrush(QtGui.QColor(200, 200, 200)))
             self.update_autocomplete()
     def import_from_button(self):
+        """Wrapper method that triggers the import logic from the UI button."""
         current_tab = self.tabs.currentWidget()
         selected_items = current_tab.selectedItems()
         if not selected_items:
@@ -154,17 +225,34 @@ class TemplateManagerUI(QtWidgets.QDialog):
         item = selected_items[0]
         self.import_template(item, 0)
     def get_tag_color (self, tag_string):
+        """Generates a procedural QColor based on the string's characters.
+
+        This function uses a positional-weighting algorithm to prevent 
+        hash collisions between tags with the same ASCII sum.
+
+        Args:
+            tag_string (str): The raw tag text to be converted (e.g., "@cg").
+
+        Returns:
+            QtGui.QColor: A procedural color mapped to the 360 HSV wheel.
+        """
         tag_string = tag_string.strip().lower()
         hue = sum(ord(char) * (i + 1) for i, char in enumerate(tag_string))
         hue = (hue * 45) % 360
         return QtGui.QColor.fromHsv(hue, 150, 255)
     def update_autocomplete(self):
+        """Refreshes the QCompleter model to include newly added tags."""
         unique_tags = {tag for t in self.alltemplates for tag in t.get("tags", [])}
         autocomplete_list = sorted([f"@{tag}" for tag in unique_tags])
         model = QtCore.QStringListModel()
         model.setStringList(autocomplete_list)
         self.completer.setModel(model)
     def open_context_menu(self, position):
+        """Spawns a right-click context menu for batch-tagging multiple templates.
+
+        Args:
+            position (QtCore.QPoint): The local cursor coordinates for the menu.
+        """
         current_tab = self.tabs.currentWidget()
         selected_items = current_tab.selectedItems()
         if not selected_items:
