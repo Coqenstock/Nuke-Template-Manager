@@ -27,10 +27,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-docs/
-source/
-make.bat
-Makefile
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -75,7 +72,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/_build
 
 # PyBuilder
 .pybuilder/
