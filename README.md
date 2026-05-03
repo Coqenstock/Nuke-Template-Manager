@@ -7,12 +7,11 @@ A template manager for Nuke that organizes scripts using folders and tags. It au
 
 1. Download or clone this repository.
 2. Inside the downloaded folder, locate the `Template_Manager` directory.
-3. Copy that `Template_Manager` directory directly into your `~/.nuke/` folder.
-4. Add the following code to your `~/.nuke/menu.py` file to create the UI shortcut:
+3. Copy the `Template_Manager` directory directly into your `~/.nuke/` folder.
+4. Add the following single line to your `~/.nuke/menu.py` file to load the tool and create the UI shortcut (`Ctrl+T`):
 
 ```python
-import nuke
-from Template_Manager.main import launch_ui
+import Template_Manager
 
 nuke.menu("Nuke").addMenu("Pipeline Tools").addCommand("Template Manager", launch_ui, "ctrl+t")
 ```
