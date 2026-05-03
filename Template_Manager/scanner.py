@@ -69,8 +69,7 @@ def scan_templates(
     """Parses .nk files as raw text to extract node dependencies safely.
  
     This function bypasses standard API evaluation to prevent pipeline crashes. 
-    It checks for standard Nuke nodes, OFX plugins, and proprietary studio 
-    tools (like "Stamps") by analyzing the file's text structure via Regex.
+    It checks for standard Nuke nodes, external nodes and plugins, and the the presence of Stamps (by Adrian Pueyo) in the script by analyzing the file's text structure via Regex.
  
     Args:
         folder_path (str): The directory containing the templates to scan.
@@ -147,7 +146,7 @@ def get_available_nodes():
     Nuke is not available.
  
     The result represents all nodes that can be instantiated from the current
-    session context, including core nodes, gizmos, OFX nodes exposed through
+    session context, including core nodes, gizmos, external nodes exposed through
     menus, and toolset-defined nodes.
  
     Returns:

@@ -161,7 +161,7 @@ class TemplateManagerUI(QtWidgets.QDialog):
     def import_template(self, item, column):
         """Handles the double-click event to import a template into Nuke.
 
-        If the template is missing OFX plugins, this intercepts the standard 
+        If the template has nodes missing from the current Nuke environment, this intercepts the standard 
         Nuke paste operation and displays a forced-acknowledgment warning 
         dialog to prevent silent pipeline errors.
 
