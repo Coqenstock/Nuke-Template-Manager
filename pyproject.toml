@@ -27,4 +27,4 @@ branches.main.match = "(main|master)"
 
 upload_to_pypi = false
 upload_to_release = true
-build_command = ""
+build_command = "mkdir -p dist && zip -r dist/Nuke_Template_Manager.zip Template_Manager README.md"
