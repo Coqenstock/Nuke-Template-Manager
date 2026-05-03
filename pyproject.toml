@@ -22,7 +22,7 @@ dev = [
 
 [tool.semantic_release]
 version_variables = ["Template_Manager/__init__.py:__version__"]
-
+version_toml = ["pyproject.toml:project.version"]
 branches.main.match = "(main|master)"
 
 upload_to_pypi = false
