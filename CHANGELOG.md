@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.2 (2026-05-03)
+
+### Bug Fixes
+
+- Move zip packaging to github actions to attach asset
+  ([`b6e376b`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/b6e376bc8f89164e8298468dd938f41ea9b988fb))
+
+
 ## v1.1.1 (2026-05-03)
 
 ### Bug Fixes
