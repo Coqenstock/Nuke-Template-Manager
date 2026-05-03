@@ -13,7 +13,7 @@ A template manager for Nuke that organizes scripts using folders and tags. It au
 
 ```python
 import Template_Manager
-````
+```
 
 ## User Guide
 
@@ -59,7 +59,7 @@ The tool will prioritize this environment variable over the local artist setting
 Launch the tool inside Nuke by navigating to **Nuke > Template Manager > Start Template Manager** or by pressing `Ctrl+T`.
 
 <p align="center">
-  <img src="Medias/ui_2.png" style="max-width: 900px; width: 100%; height: auto;">
+  <img src="Medias/ui_1.png" height="500">
 </p>
 
 #### 1. Folder-Based Organization (Tabs)
@@ -67,7 +67,7 @@ Launch the tool inside Nuke by navigating to **Nuke > Template Manager > Start T
 Templates are automatically sorted into tabs based on their parent folder. By design, folders are intended to group your templates by Project or Show. For example, templates saved inside a folder named `Project_Alpha` will appear under a dedicated "Project Alpha" tab, keeping show-specific setups neatly isolated. *(Note: The system is flexible, so studios or individuals can adapt this folder logic to fit whatever structure suits their specific pipeline).*
 
 <p align="center">
-  <img src="Medias/tabs.png" style="max-width: 800px; width: 100%; height: auto;">
+  <img src="Medias/tabs.png" height="60">
 </p>
 
 #### 2. Health Status & Dependency Checking
@@ -79,7 +79,7 @@ The tool bypasses the standard Nuke API and performs a lightning-fast deep-text 
 * `[ERROR]`: The `.nk` file is corrupted or failed to read.
 
 <p align="center">
-  <img src="Medias/status.png" style="max-width: 800px; width: 100%; height: auto;">
+  <img src="Medias/status.png" height="200">
 </p>
 
 #### 3. Smart Importing & Safety Warnings
@@ -88,7 +88,7 @@ The tool bypasses the standard Nuke API and performs a lightning-fast deep-text 
 * **Safety Net:** If you try to import a template with a `[MISSING]` status, the tool will intercept the paste and display a warning dialog. You can choose to cancel, or force the import anyway if you are comfortable losing the missing nodes.
 
 <p align="center">
-  <img src="Medias/import.png" style="max-width: 800px; width: 100%; height: auto;">
+  <img src="Medias/import.png" height="220">
 </p>
 
 #### 4. Advanced Tagging System
@@ -100,12 +100,11 @@ Keep your templates organized using custom, color-coded metadata tags. While fol
 * **Batch Tagging:** Select multiple templates, right-click, and choose `Batch Tag` to assign functional metadata to entire groups at once.
 
 <p align="center">
-  <img src="Medias/tags.png" style="max-width: 800px; width: 100%; height: auto;">
-</p>
-
-<p align="center">
-  <img src="Medias/batch_tagging_1.png" style="max-width: 380px; width: 48%; height: auto;">
-  <img src="Medias/batch_tagging_2.png" style="max-width: 380px; width: 48%; height: auto;">
+  <img src="Medias/tags.png" height="200">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="Medias/batch_tagging_1.png" height="200">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="Medias/batch_tagging_2.png" height="200">
 </p>
 
 #### 5. Search, Sorting & Filtering
@@ -117,7 +116,7 @@ The search bar supports dual-filtering for both names and tags:
 * **Clickable Sorting:** Click on any of the column headers (Template Name, Status, or Tags) to automatically sort the list A-Z or Z-A. By default, templates are sorted alphabetically by name upon launch.
 
 <p align="center">
-  <img src="Medias/tag_search.png" style="max-width: 800px; width: 100%; height: auto;">
+  <img src="Medias/tag_search.png" height="60" width="700">
 </p>
 
 #### 6. Proprietary Node Detection (Stamps)
@@ -125,7 +124,7 @@ The search bar supports dual-filtering for both names and tags:
 If your studio utilizes proprietary tools like *Stamps* by Adrian Pueyo, the scanner will automatically detect their presence inside the script. Templates containing Stamps are highlighted in blue in the UI, allowing you to identify specialized scripts at a glance.
 
 <p align="center">
-  <img src="Medias/stamps.png" style="max-width: 800px; width: 100%; height: auto;">
+  <img src="Medias/stamps.png" height="200">
 </p>
 
 ## Documentation
