@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v1.2.0 (2026-05-03)
+
+### Documentation
+
+- Add local UI screenshot to readme
+  ([`d14d3a2`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/d14d3a21ab56acc91d8c4925b97560f49f729454))
+
+- Fix image sizing in README for GitHub rendering
+  ([`70af3d6`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/70af3d696821d309f8bbb4985df27c39fa736435))
+
+- Fix license badge to link to official apache 2.0 website
+  ([`dc56e05`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/dc56e05cadb1ca14f4b292a329dec22e1a358b28))
+
+- Improve README formatting and image layout
+  ([`c73091b`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/c73091b7a05f0a93daecad68281e8280738a56d5))
+
+- Normalize README image sizing and improve layout consistency
+  ([`cc9858d`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/cc9858d0c5d7fb7ed67070abc171d3504ddf5e0d))
+
+- Restructure README layout and improve image presentation
+  ([`47e3c88`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/47e3c88c00a7bd2cfd1a85d566130bbf9d3d0269))
+
+- Update installation instructions to point to automated zip releases
+  ([`1bcd4eb`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/1bcd4eb8092dbad364267f1d422330359963a1fa))
+
+### Features
+
+- Add template sorting function
+  ([`fd14e83`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/fd14e839d20483847af2441a4a33010a69cb7298))
+
+
 ## v1.1.2 (2026-05-03)
 
 ### Bug Fixes
