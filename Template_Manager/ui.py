@@ -89,6 +89,8 @@ class TemplateManagerUI(QtWidgets.QDialog):
             tree_widget.setColumnWidth(0, 300)
             tree_widget.setColumnWidth(1, 150)
             tree_widget.itemDoubleClicked.connect(self.import_template)
+            tree_widget.setSortingEnabled(True)
+            tree_widget.sortByColumn(0, QtCore.Qt.AscendingOrder)
             self.tabs.addTab(tree_widget, cat)
             self.category_lists[cat] = tree_widget
 
