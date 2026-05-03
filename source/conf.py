@@ -4,7 +4,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
-repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+current_dir = os.path.abspath(os.path.dirname(__file__))
+repo_root = os.path.dirname(current_dir)
 sys.path.insert(0, repo_root)
 autodoc_mock_imports = ["nuke", "PySide2", "PySide6", "PyQt5"]
 # -- Project information -----------------------------------------------------
