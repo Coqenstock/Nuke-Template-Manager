@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.1.1 (2026-05-03)
+
+### Bug Fixes
+
+- Force release to generate and attach zip asset
+  ([`9f3b7cd`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/9f3b7cd4f4cc2d68ba5ac02c469058746b6d764a))
+
+### Build System
+
+- Package tool and readme into a clean zip asset for releases
+  ([`dc05151`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/dc051517f3febe124b9a4c92ea19a65077a55c60))
+
+
 ## v1.1.0 (2026-05-03)
 
 ### Chores
