@@ -30,3 +30,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: semantic-release version
+
+      - name: Package and Attach Zip Asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p dist
+          zip -r dist/Nuke_Template_Manager.zip Template_Manager README.md
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+          gh release upload $LATEST_TAG dist/Nuke_Template_Manager.zip --clobber

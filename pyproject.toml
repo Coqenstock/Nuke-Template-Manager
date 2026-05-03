@@ -23,8 +23,5 @@ dev = [
 [tool.semantic_release]
 version_variables = ["Template_Manager/__init__.py:__version__"]
 version_toml = ["pyproject.toml:project.version"]
-branches.main.match = "(main|master)"
-
 upload_to_pypi = false
 upload_to_release = true
-build_command = "mkdir -p dist && zip -r dist/Nuke_Template_Manager.zip Template_Manager README.md"
