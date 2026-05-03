@@ -51,43 +51,72 @@ The tool will prioritize this environment variable over the local artist setting
 
 ### Features & Usage
 Launch the tool inside Nuke by navigating to **Nuke > Template Manager > Start Template Manager** or by pressing `Ctrl+T`.
-![Template Manager UI](Medias/ui_1.png)
+
+<p align="center">
+  <img src="Medias/ui_1.png" width="800">
+</p>
+
 
 #### 1. Folder-Based Organization (Tabs)
 Templates are automatically sorted into tabs based on their parent folder. By design, folders are intended to group your templates by Project or Show. For example, templates saved inside a folder named `Project_Alpha` will appear under a dedicated "Project Alpha" tab, keeping show-specific setups neatly isolated. *(Note: The system is flexible, so studios or individuals can adapt this folder logic to fit whatever structure suits their specific pipeline).*
-![Template Manager UI](Medias/tabs.png)
+
+<p align="center">
+  <img src="Medias/tabs.png" width="800">
+</p>
 
 #### 2. Health Status & Dependency Checking
 The tool bypasses the standard Nuke API and performs a lightning-fast deep-text scan of your `.nk` files to ensure they won't crash your script. Each template displays a status:
 * `[OK]`: All required nodes and plugins are installed on your machine.
 * `[MISSING]`: The template contains third-party or OFX nodes that are missing from your current Nuke environment. Hover over the text to see a tooltip listing the exact plugins you need.
 * `[ERROR]`: The `.nk` file is corrupted or failed to read.
-![Template Manager UI](Medias/status.png)
+
+<p align="center">
+  <img src="Medias/status.png" width="800">
+</p>
 
 #### 3. Smart Importing & Safety Warnings
 * **Import:** Double-click any template, or select it and hit `Import Selected` to paste it directly into your Node Graph.
 * **Safety Net:** If you try to import a template with a `[MISSING]` status, the tool will intercept the paste and display a warning dialog. You can choose to cancel, or force the import anyway if you are comfortable losing the missing nodes.
-![Template Manager UI](Medias/import.png)
+
+<p align="center">
+  <img src="Medias/import.png" width="800">
+</p>
 
 #### 4. Advanced Tagging System
 Keep your templates organized using custom, color-coded metadata tags. While folders handle the "where" (Projects), tags are designed to handle the "what" (Functions). Use tags to define what a template actually does, such as *keying*, *cleanup*, *despill*, or *relighting*. Tags are saved locally (or on the network) in `template_metadata.json`.
 * **Inline Tagging:** Double-click the "Tags" column next to any template to type a new tag. Separate multiple tags with commas (e.g., `keying, edge_extend, fast`).
 * **Procedural Colors:** Tags are automatically assigned a unique color based on the characters you type, keeping your UI visually consistent without manual styling.
 * **Batch Tagging:** Select multiple templates, right-click, and choose `Batch Tag` to assign functional metadata to entire groups at once.
-![Template Manager UI](Medias/tags.png)
-![Template Manager UI](Medias/batch_tagging_1.png)
-![Template Manager UI](Medias/batch_tagging_2.png)
+
+<p align="center">
+  <img src="Medias/tags.png" width="800">
+</p>
+
+<p align="center">
+  <img src="Medias/batch_tagging_1.png" width="800">
+</p>
+
+<p align="center">
+  <img src="Medias/batch_tagging_2.png" width="800">
+</p>
 
 #### 5. Search, Sorting & Filtering
 The search bar supports dual-filtering for both names and tags:
 * **Text Search:** Type normally to filter templates by their file name.
 * **Tag Search:** Type `@` followed by your tag name (e.g., `@cleanup`) to filter exclusively by function. The search bar includes an autocomplete dropdown for all active tags in your database.
 * **Clickable Sorting:** Click on any of the column headers (Template Name, Status, or Tags) to automatically sort the list A-Z or Z-A. By default, templates are sorted alphabetically by name upon launch.
-![Template Manager UI](Medias/tag_search.png)
+
+<p align="center">
+  <img src="Medias/tag_search.png" width="800">
+</p>
 
 #### 6. Proprietary Node Detection (Stamps)
 If your studio utilizes proprietary tools like *Stamps* by Adrian Pueyo, the scanner will automatically detect their presence inside the script. Templates containing Stamps are highlighted in blue in the UI, allowing you to identify specialized scripts at a glance.
-![Template Manager UI](Medias/stamps.png)
+
+<p align="center">
+  <img src="Medias/stamps.png" width="800">
+</p>
+
 
 ## Documentation
 
