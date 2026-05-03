@@ -53,15 +53,16 @@ The tool will prioritize this environment variable over the local artist setting
 Launch the tool inside Nuke by navigating to **Nuke > Template Manager > Start Template Manager** or by pressing `Ctrl+T`.
 
 <p align="center">
-  <img src="Medias/ui_1.png" width="800">
+  <img src="Medias/ui_2.png" style="max-width: 100%; height: auto;">
 </p>
+
 
 
 #### 1. Folder-Based Organization (Tabs)
 Templates are automatically sorted into tabs based on their parent folder. By design, folders are intended to group your templates by Project or Show. For example, templates saved inside a folder named `Project_Alpha` will appear under a dedicated "Project Alpha" tab, keeping show-specific setups neatly isolated. *(Note: The system is flexible, so studios or individuals can adapt this folder logic to fit whatever structure suits their specific pipeline).*
 
 <p align="center">
-  <img src="Medias/tabs.png" width="800">
+  <img src="Medias/tabs.png" style="max-width: 100%; height: auto;">
 </p>
 
 #### 2. Health Status & Dependency Checking
@@ -71,15 +72,15 @@ The tool bypasses the standard Nuke API and performs a lightning-fast deep-text 
 * `[ERROR]`: The `.nk` file is corrupted or failed to read.
 
 <p align="center">
-  <img src="Medias/status.png" width="800">
+  <img src="Medias/status.png" style="max-width: 100%; height: auto;">
 </p>
 
 #### 3. Smart Importing & Safety Warnings
 * **Import:** Double-click any template, or select it and hit `Import Selected` to paste it directly into your Node Graph.
 * **Safety Net:** If you try to import a template with a `[MISSING]` status, the tool will intercept the paste and display a warning dialog. You can choose to cancel, or force the import anyway if you are comfortable losing the missing nodes.
 
-<p align="center">
-  <img src="Medias/import.png" width="800">
+<<p align="center">
+  <img src="Medias/import.png" style="max-width: 100%; height: auto;">
 </p>
 
 #### 4. Advanced Tagging System
@@ -89,15 +90,12 @@ Keep your templates organized using custom, color-coded metadata tags. While fol
 * **Batch Tagging:** Select multiple templates, right-click, and choose `Batch Tag` to assign functional metadata to entire groups at once.
 
 <p align="center">
-  <img src="Medias/tags.png" width="800">
+  <img src="Medias/tags.png" style="max-width: 100%; height: auto;">
 </p>
 
 <p align="center">
-  <img src="Medias/batch_tagging_1.png" width="800">
-</p>
-
-<p align="center">
-  <img src="Medias/batch_tagging_2.png" width="800">
+  <img src="Medias/batch_tagging_1.png" width="48%">
+  <img src="Medias/batch_tagging_2.png" width="48%">
 </p>
 
 #### 5. Search, Sorting & Filtering
@@ -107,14 +105,14 @@ The search bar supports dual-filtering for both names and tags:
 * **Clickable Sorting:** Click on any of the column headers (Template Name, Status, or Tags) to automatically sort the list A-Z or Z-A. By default, templates are sorted alphabetically by name upon launch.
 
 <p align="center">
-  <img src="Medias/tag_search.png" width="800">
+  <img src="Medias/tag_search.png" style="max-width: 100%; height: auto;">
 </p>
 
 #### 6. Proprietary Node Detection (Stamps)
 If your studio utilizes proprietary tools like *Stamps* by Adrian Pueyo, the scanner will automatically detect their presence inside the script. Templates containing Stamps are highlighted in blue in the UI, allowing you to identify specialized scripts at a glance.
 
 <p align="center">
-  <img src="Medias/stamps.png" width="800">
+  <img src="Medias/stamps.png" style="max-width: 100%; height: auto;">
 </p>
 
 
