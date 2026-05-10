@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v2.0.0 (2026-05-10)
+
+### Documentation
+
+- Separate user guide into dedicated markdown file
+  ([`c9934fe`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/c9934fe0b3bdafc62ffcb7df58bbfb666455b3c6))
+
+### Features
+
+- Overhaul save workflow, dynamic auto-tagging, and folder hierarchy display
+  ([`515754c`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/515754ccba48e31c4938815ecdc013e293c15f41))
+
+
 ## v1.2.0 (2026-05-03)
 
 ### Documentation
