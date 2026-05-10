@@ -3,13 +3,12 @@ name = "nuke-template-manager"
 version = "1.2.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.7"
 dependencies = [
     "ruff>=0.14.14",
-    "nuke>=2.6.2",
     "PySide6>=6.8.0",
 ]
-
+ 
 [dependency-groups]
 dev = [
     "ruff>=0.14.14",
@@ -19,9 +18,16 @@ dev = [
     "sphinxcontrib-jquery>=4.1",
     "numpydoc>=1.10.0",
 ]
-
+ 
 [tool.semantic_release]
 version_variables = ["Template_Manager/__init__.py:__version__"]
 version_toml = ["pyproject.toml:project.version"]
 upload_to_pypi = false
 upload_to_release = true
+ 
+[tool.pyright]
+pythonVersion = "3.7"
+typeCheckingMode = "basic"
+reportMissingImports = "none"
+reportMissingModuleSource = "none"
+reportAttributeAccessIssue = "none"
