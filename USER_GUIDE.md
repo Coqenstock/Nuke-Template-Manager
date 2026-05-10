@@ -54,16 +54,11 @@ Launch the tool inside Nuke by navigating to **Nuke > Template Manager > Browser
   <img src="Medias/ui_4.png" height="500">
 </p>
 
-### 1. Folder-Based Organization (Tabs)
+### 1. Folder-Based Organization (Dropdown Menu)
 
-Templates are automatically sorted into tabs based on their parent folder. By design, folders are intended to group your templates by Project or Show. For example, templates saved inside a folder named `Project_Alpha` will appear under a dedicated "Project Alpha" tab, keeping show-specific setups neatly isolated. *(Note: The system is flexible, so studios or individuals can adapt this folder logic to fit whatever structure suits their specific pipeline).*
+Templates are automatically sorted into groups based on their parent folder. By design, folders are intended to group your templates by Project or Show. For example, templates saved inside a folder named `Project_Alpha` will appear under a dedicated "Project Alpha" option in the dropdown menu, keeping show-specific setups neatly isolated. *(Note: The system is flexible, so studios or individuals can adapt this folder logic to fit whatever structure suits their specific pipeline.)*
 
-When you launch the tool, it will also inspect the name of the script you currently have open in Nuke. If it can match the script to a known project or template, that tab is automatically selected and the matching template rows are pre-expanded and scrolled into view, so the most relevant entries are visible without any searching.
-
-<p align="center">
-  <img src="Medias/tabs.png" height="60">
-</p>
-
+When you launch the tool, it will also inspect the name of the script you currently have open in Nuke. If it can match the script to a known project or template group, that group is automatically selected from the dropdown menu and the matching template rows are pre-expanded and scrolled into view, so the most relevant entries are visible without any searching.
 ### 2. Health Status & Dependency Checking
 
 The tool bypasses the standard Nuke API and performs a lightning-fast deep-text scan of your `.nk` files to ensure they won't crash your script. Each template displays a status:
@@ -141,7 +136,9 @@ The fast-track flow is designed for the common case of iterating on a template y
 
 <!-- TODO: add screenshot -->
 <p align="center">
-  <img src="Medias/save_fast_track.png" height="220">
+  <img src="Medias/save_fast_track.png" height="200">
+   &nbsp;&nbsp;&nbsp;&nbsp;
+   <img src="Medias/save_fast_track_2.png" height="200">
 </p>
 
 #### Full Save Dialog
@@ -171,9 +168,9 @@ Keep your templates organized using custom, color-coded metadata tags. While fol
 <p align="center">
   <img src="Medias/tags.png" height="200">
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="Medias/batch_tagging_1.png" height="200">
+  <img src="Medias/batch_tagging_3.png" height="200">
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="Medias/batch_tagging_2.png" height="200">
+  <img src="Medias/batch_tagging_4.png" height="200">
 </p>
 
 ### 8. Auto-Tag Rules Editor
