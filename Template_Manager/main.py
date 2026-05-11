@@ -76,25 +76,35 @@ def launch_save_ui() -> None:
 
     1. Verify that at least one node is selected in the DAG, aborting
        with a user-facing message otherwise.
-    2. Walk the first configured template root to build two
+    2. Capture the current script's root settings (format, fps,
+       colorManagement, OCIO_config) into a ``template_context``
+       dict. If the settings match the agnostic defaults
+       (2048x1556, 24fps, "Nuke" colorManagement) the context is
+       set to ``None`` and no root injection will occur later.
+    3. Walk the first configured template root to build two
        structures: ``projects_dict`` mapping display project names to
        known subfolder paths, and ``fast_track_db`` mapping lowercase
        template base names to their highest-version on-disk location.
-    3. Inspect the active Nuke script name. If its base name (after
+    4. Inspect the active Nuke script name. If its base name (after
        version-suffix stripping) appears in ``fast_track_db``, present
        a streamlined "Template Match Found" dialog offering quick
        options to version-up, overwrite the matched version, save as
        the script's own version, or open the full save menu.
-    4. If the user chooses a fast-track option the template is written
-       directly via ``nuke.nodeCopy`` and the function returns.
-    5. Otherwise the full :class:`ui.SaveTemplateDialog` is shown so
+    5. If the user chooses a fast-track option the template is written
+       directly via ``nuke.nodeCopy``. Because ``nuke.nodeCopy`` only
+       copies nodes and not project-level settings, a ``Root { ... }``
+       block built from ``template_context`` is then prepended to the
+       saved ``.nk`` file (skipped if the context is ``None``), and
+       the function returns.
+    6. Otherwise the full :class:`ui.SaveTemplateDialog` is shown so
        the user can pick a project, subfolder, name, and versioning
        behaviour.
-    6. When the save dialog accepts, any selected Read nodes are
+    7. When the save dialog accepts, any selected Read nodes are
        optionally swapped to Placeholder NoOps via
        :class:`ui.PlaceholderDialog`, the template is copied to disk,
-       and the Read swap is reverted with an undo so the artist's
-       script is left untouched.
+       the same ``Root { ... }`` block is injected when a non-agnostic
+       context was captured, and the Read swap is reverted with an
+       undo so the artist's script is left untouched.
 
     All transient Nuke graph modifications performed during the swap
     step are bracketed by ``nuke.Undo()`` calls and reverted in the
@@ -106,11 +116,44 @@ def launch_save_ui() -> None:
         does not require the main :class:`ui.TemplateManagerUI`
         window to be open.
     """
-    try:
+    try:    
         selected_nodes = nuke.selectedNodes()
         if not selected_nodes:
             nuke.message("Please select some nodes to save as a template.")
             return
+        try:
+            root_format = nuke.root()['format'].value()
+            current_w = root_format.width()
+            current_h = root_format.height()
+            current_fps = nuke.root()['fps'].value()
+
+            try:
+                current_cm = nuke.root()['colorManagement'].value()
+            except Exception:
+                current_cm = "Nuke"
+                
+            try:
+                current_ocio = nuke.root()['OCIO_config'].value()
+            except Exception:
+                current_ocio = ""
+            
+            DEFAULT_W = 2048
+            DEFAULT_H = 1556
+            DEFAULT_FPS = 24.0
+            DEFAULT_CM = "Nuke"
+            if (current_w == DEFAULT_W and current_h == DEFAULT_H and 
+                current_fps == DEFAULT_FPS and current_cm == DEFAULT_CM):
+                template_context = None  # It's Agnostic!
+            else:
+                template_context = {
+                    "w": current_w, 
+                    "h": current_h, 
+                    "fps": current_fps,
+                    "cm": current_cm,
+                    "ocio": current_ocio
+                }
+        except Exception:
+            template_context = None
     except Exception:
         return
 
@@ -240,6 +283,31 @@ def launch_save_ui() -> None:
                 final_file = os.path.join(folder_path, "{0}_v{1:02d}.nk".format(orig_name, target_v)).replace("\\", "/")
 
             nuke.nodeCopy(final_file)
+            if template_context:
+                root_lines = [
+                    "Root {",
+                    f' fps {template_context["fps"]}',
+                    f' format "{template_context["w"]} {template_context["h"]}"'
+                ]
+
+                if template_context["cm"]:
+                    root_lines.append(f' colorManagement {template_context["cm"]}')
+                if template_context["ocio"]:
+                    root_lines.append(f' OCIO_config {template_context["ocio"]}')
+                    
+                root_lines.append("}\n")
+                root_string = "\n".join(root_lines)
+                
+                try:
+                    target_file = final_file 
+                    
+                    with open(target_file, 'r') as f:
+                        original_script = f.read()
+                    
+                    with open(target_file, 'w') as f:
+                        f.write(root_string + original_script)
+                except Exception as e:
+                    print("Failed to inject Root block:", e)
             nuke.message("Template Fast-Saved successfully as:\n" + os.path.basename(final_file))
             return
 
@@ -297,6 +365,31 @@ def launch_save_ui() -> None:
                 nuke.Undo().end()
 
             nuke.nodeCopy(final_file_path)
+            if template_context:
+                root_lines = [
+                    "Root {",
+                    f' fps {template_context["fps"]}',
+                    f' format "{template_context["w"]} {template_context["h"]}"'
+                ]
+                
+                if template_context["cm"]:
+                    root_lines.append(f' colorManagement {template_context["cm"]}')
+                if template_context["ocio"]:
+                    root_lines.append(f' OCIO_config {template_context["ocio"]}')
+                    
+                root_lines.append("}\n")
+                root_string = "\n".join(root_lines)
+                
+                try:
+                    target_file = final_file_path 
+                    
+                    with open(target_file, 'r') as f:
+                        original_script = f.read()
+                    
+                    with open(target_file, 'w') as f:
+                        f.write(root_string + original_script)
+                except Exception as e:
+                    print("Failed to inject Root block:", e)
             nuke.message("Template saved successfully as:\n" + os.path.basename(final_file_path))
 
         finally:

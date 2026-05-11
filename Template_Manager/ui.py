@@ -1067,6 +1067,39 @@ class TemplateManagerUI(QtWidgets.QDialog):
         except Exception:
             print("Not running inside Nuke.")
             return
+        try:
+            root_format = nuke.root()['format'].value()
+            current_w = root_format.width()
+            current_h = root_format.height()
+            current_fps = nuke.root()['fps'].value()
+
+            try:
+                current_cm = nuke.root()['colorManagement'].value()
+            except Exception:
+                current_cm = "Nuke"
+                
+            try:
+                current_ocio = nuke.root()['OCIO_config'].value()
+            except Exception:
+                current_ocio = ""
+            
+            DEFAULT_W = 2048
+            DEFAULT_H = 1556
+            DEFAULT_FPS = 24.0
+            DEFAULT_CM = "Nuke"
+            if (current_w == DEFAULT_W and current_h == DEFAULT_H and 
+                current_fps == DEFAULT_FPS and current_cm == DEFAULT_CM):
+                template_context = None  # It's Agnostic!
+            else:
+                template_context = {
+                    "w": current_w, 
+                    "h": current_h, 
+                    "fps": current_fps,
+                    "cm": current_cm,
+                    "ocio": current_ocio
+                }
+        except Exception:
+            template_context = None
 
         read_nodes = [n for n in selected_nodes if n.Class() == "Read"]
         nodes_to_convert = []
@@ -1134,8 +1167,33 @@ class TemplateManagerUI(QtWidgets.QDialog):
                     nuke.Undo().end()
 
                 nuke.nodeCopy(final_file_path)
-                nuke.message("Template saved successfully as:\n" + os.path.basename(final_file_path))
-                self.close()
+                if template_context:
+                    root_lines = [
+                        "Root {",
+                        f' fps {template_context["fps"]}',
+                        f' format "{template_context["w"]} {template_context["h"]}"'
+                    ]
+                    
+                    if template_context["cm"]:
+                        root_lines.append(f' colorManagement {template_context["cm"]}')
+                    if template_context["ocio"]:
+                        root_lines.append(f' OCIO_config {template_context["ocio"]}')
+                        
+                    root_lines.append("}\n")
+                    root_string = "\n".join(root_lines)
+                    
+                    try:
+                        target_file = final_file_path 
+                        
+                        with open(target_file, 'r') as f:
+                            original_script = f.read()
+                        
+                        with open(target_file, 'w') as f:
+                            f.write(root_string + original_script)
+                    except Exception as e:
+                        print("Failed to inject Root block:", e)
+                    nuke.message("Template saved successfully as:\n" + os.path.basename(final_file_path))
+                    self.close()
             finally:
                 if nodes_to_convert:
                     nuke.Undo().undo()

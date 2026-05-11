@@ -125,7 +125,8 @@ def get_effective_template_paths() -> List[str]:
        wrapped in a one-element list for backward compatibility with
        configurations produced by earlier plugin versions.
     3. If neither key is present or yields any valid directory,
-       :data:`DEFAULT_TEMPLATE_PATH` is used, provided it exists.
+       :data:`DEFAULT_TEMPLATE_PATH` is created on disk (if it does
+       not already exist) and returned as the sole fallback.
 
     All candidate paths are filtered through :func:`os.path.isdir`, so
     stale entries pointing at deleted directories are silently dropped
@@ -134,8 +135,9 @@ def get_effective_template_paths() -> List[str]:
     Returns:
         list[str]: A list of absolute directory paths that currently
         exist on disk and should be scanned for ``.nk`` templates.
-        An empty list is returned only when no valid directory can be
-        resolved at all.
+        Always contains at least one entry, since
+        :data:`DEFAULT_TEMPLATE_PATH` is created and returned when no
+        configured path resolves.
     """
     data = load_config_data()
     paths = data.get("template_paths", [])
@@ -147,10 +149,8 @@ def get_effective_template_paths() -> List[str]:
     valid_paths = [p for p in paths if os.path.isdir(p)]
 
     if not valid_paths:
-        if os.path.isdir(DEFAULT_TEMPLATE_PATH):
-            return [DEFAULT_TEMPLATE_PATH]
-        return []
-
+        os.makedirs(DEFAULT_TEMPLATE_PATH, exist_ok=True)
+        return [DEFAULT_TEMPLATE_PATH]
     return valid_paths
 
 
