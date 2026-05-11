@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.1.0 (2026-05-11)
+
+### Features
+
+- Default template folder creation, and project settings saves on template save
+  ([`be68c17`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/be68c178610f8b0520070fcd41294f24408fd1e7))
+
+
 ## v2.0.0 (2026-05-10)
 
 ### Documentation
