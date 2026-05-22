@@ -37,12 +37,71 @@ Attributes:
 import io
 import os
 import re
-from typing import List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, List, Optional, Set, Tuple, Dict, Any
 
-try:
-    from typing import Literal, TypedDict
-except ImportError:
-    from typing_extensions import Literal, TypedDict
+if TYPE_CHECKING:
+    try:
+        from typing import Literal, TypedDict
+    except ImportError:
+        from typing_extensions import Literal, TypedDict
+
+    TemplateStatus = Literal["OK", "MISSING_NODES", "READ_ERROR", "FILE_TOO_LARGE"]
+
+    class Template(TypedDict):
+        """Typed dictionary describing one scanned template entry.
+
+        The keys mirror the fields stored in the scanner cache and consumed
+        by the UI. Every value is populated by :func:`scan_templates`,
+        although several may be ``None`` when the file could not be parsed
+        or when the template is project-agnostic.
+
+        Attributes:
+            name: Display name of the template, derived from the filename
+                with the ``.nk`` extension stripped.
+            path: Absolute path to the source ``.nk`` file.
+            missing_nodes: Sorted list of node class names referenced by the
+                template that are not present in the user's current Nuke
+                environment. Empty when the template is fully resolvable.
+            errors: Free-form error string when parsing failed, otherwise
+                ``None``.
+            status: One of the strings declared by :data:`TemplateStatus`.
+                ``"OK"`` indicates a healthy template, ``"MISSING_NODES"``
+                that one or more plugins are absent, ``"READ_ERROR"`` that
+                the file could not be parsed, and ``"FILE_TOO_LARGE"`` that
+                the file exceeded :data:`settings.MAX_FILE_SIZE_BYTES`.
+            is_stamps: ``True`` if the template appears to depend on the
+                Stamps plugin by Adrian Pueyo, detected via signature
+                strings in the file.
+            has_gizmos: ``True`` if any node class in the template falls
+                outside :data:`CORE_NODES`, indicating a dependency on
+                external gizmos or third-party plugins.
+            tags: Tag strings associated with the template, merged from
+                manual user metadata and the auto-tag rule engine.
+            fps: Frames-per-second declared by the template's ``Root``
+                block, or ``None`` for project-agnostic templates.
+            resolution: ``(width, height)`` declared by the template's
+                ``Root`` block, or ``None`` for project-agnostic templates.
+            colorspace: Colour-management value declared by the template's
+                ``Root`` block, or ``None`` for project-agnostic templates.
+            project_settings_mode: Either ``"ROOT_SETTINGS"`` when project
+                settings were extracted from a ``Root`` block, or
+                ``"AGNOSTIC"`` when the template carries no ``Root`` block.
+        """
+        name: str
+        path: str
+        missing_nodes: List[str]
+        errors: Optional[str]
+        status: Optional[TemplateStatus]
+        is_stamps: Optional[bool]
+        has_gizmos: Optional[bool]
+        tags: List[str]
+        fps: Optional[float]
+        resolution: Optional[Tuple[int, int]]
+        colorspace: Optional[str]
+        project_settings_mode: str
+
+else:
+    Template = Dict[str, Any]
 
 from . import saves
 from .settings import (
@@ -57,7 +116,6 @@ NODE_FINDER = re.compile(
     re.MULTILINE,
 )
 CORE_NODES = {'CameraTracker', 'Invert', 'F_Steadiness', 'Glow2', 'Crop', 'LayerContactSheet', 'ColorBars', 'SphericalTransform2', 'ZDefocus', 'GeoCube', 'C_CameraIngest2_1', 'ViewerGamma', 'EdgeScatter', 'GeoStageEdit', 'F_DeGrain', 'ReflectiveSurface', 'DegrainBlue', 'Bezier', 'FillMat', 'Inpaint2', 'FnNukeMultiTypeOpParticleOp', 'Spotlight', 'ColorMatrix', 'ApplyLUT', 'Keymix', 'IDistort', 'ViewerClipTest', 'RendermanShader', 'LiveInput', 'GeoDrawMode', 'IBKGizmo', 'GeoPoints', 'PointsTo3D', 'GeoUVProject', 'F_DeNoise', 'ChannelMerge', 'ChromaKeyer', 'Mirror2', 'StickyNote', 'Write', 'CheckerBoard', 'CameraShake2', 'BakedPointCloudMesh', 'DeepMerge', 'CornerPin2D', 'GeoReference', 'C_RayRender2_1', 'NoOp', 'ViewerScopeOp', 'IBKSFill', 'C_SphericalTransform2_1', 'GeoConstrain', 'GeomOpTester', 'Project3DShader', 'Transform3D', 'DropShadow', 'ContactSheet', 'EditGeo', 'ParticleBlinkScript', 'AddMix', 'add32p', 'DirBlur', 'ZFDefocus', 'BackdropNode', 'C_Blender2_1', 'GeoCard', 'GeoScopePrim', 'objReaderObj', 'PointCloudGenerator1_0', 'LensDistortion', 'PSDMerge', 'MultiTexture', 'BlackOutside', 'Twist', 'Axis3', 'ColorWheel', 'CameraTracker1_0', 'Normals', 'F_MotionBlur', 'C_STMap2_1', 'CameraTrackerPointCloud1_0', 'Switch', 'GeoCompare', 'Constant', 'GeoCollection', 'Modeler', 'ParticleLookAt', 'Merge2', 'Output', 'DepthGenerator', 'Read', 'StabTrack', 'Light', 'Grain', 'ZSlice', 'CurveTool', 'OCIOFileTransform', 'FnNukeMultiTypeOpGeomOp', 'ColorCorrect', 'BasicSurface', 'F_ReGrain', 'FloodFill', 'DeepWrite', 'FFT', 'IBKColour', 'PlanarTracker1_0', 'SimpleAxis', 'Black', 'SpotLight1', 'SideBySide', 'FromDeep', 'TextureFile', 'GeoSelect', 'LightWrap', 'ParticleSettings', 'AddTimeCode', 'MergeMat', 'Defocus', 'GeoRadialWarp', 'CameraTrackerPointCloud', 'UVTile2', 'BlendMat', 'Encryptomatte', 'PointCloudGenerator', 'RayRender', 'ZComp', 'GeoPointsToMesh', 'Anaglyph', 'AdjBBox', 'DiskCache', 'Cryptomatte', 'HueKeyer', 'VariableSwitch', 'CylinderObj', 'Sphere', 'PointLight', 'Fog', 'DeepDeOverlap', 'FnNukeMultiTypeOpDeepOp', 'Environment', 'ViewerProcess_1DLUT', 'DepthToPosition', 'Grain2', 'VectorGenerator', 'Bilateral2', 'Light2', 'DeepMerge2', 'MeshGeo', 'WireframeShader', 'Bilateral', 'PrimatteAdjustLighting', 'CopyBBox', 'CopyCat', 'BlinkFilterErode', 'RadialDistort', 'Mocha Pro', 'BlinkBlur', 'Checker', 'DeepHoldout2', 'Glow', 'PLogLin', 'ParticleEmitter', 'Emission', 'GeoBakedPointCloud', 'StarField', 'Tracker4', 'PrintHash', 'MindRead', 'GeoScene', 'VectorBlur', 'Dither', 'GridWarp3', 'Trilinear', 'ParticleProjectImage', 'BakedPointCloud', 'Erode', 'ParticleToGeo', 'C_ColourMatcher2_1', 'RolloffContrast', 'MakeLatLongMap', 'GeoMerge', 'ParticleConstrainToSphere', 'DeepTransform', 'FrameRange', 'DirBlurWrapper', 'ZMerge', 'PositionToPoints', 'ViewerDitherDisable', 'FrameHold', 'NoProxy', 'Soften', 'ViewMetaData', 'Cube', 'ConstantShader', 'Log2Lin', 'ParticleBlinkScriptRender', 'FrameBlend', 'DeepCompare', 'ColorLookup', 'PostageStamp', 'ParticleShockWave', 'ParticleDistributeSphere', 'GPUFileShader', 'Displacement', 'DeepChannelBlanker', 'SurfaceOptions', 'Unpremult', 'EnvironmentLight', 'ModelBuilderGeo', 'ParticleAttractToSphere', 'Gizmo', 'UnrealReader', 'DegrainSimple', 'BurnIn', 'Toe2', 'FilterErode', 'ModifyMetaData', 'OCIOLogConvert', 'Card2', 'EdgeDetectWrapper', 'Ultimatte', 'ZBlur', 'ShuffleCopy', 'VectorCornerPin', 'EdgeBlur', 'Dot', 'Retime', 'ParticleVortex', 'DeInterlace', 'ViewerLUT', 'GeoBakedPointCloudMesh', 'Ramp', 'Viewer', 'WriteGeo', 'C_Bilateral2_1', 'F_RigRemoval', 'AttribGeo', 'AddChannels', 'Inference', 'ToDeep', 'ViewerChannelSelector', 'Keyer', 'DeepClipZ', 'OpStatisticsOp', 'TimeClip', 'ParticleFlock', 'Preferences', 'TimeDissolve', 'F_DeFlicker2', 'VectorToMotion', 'DeepExpression', 'ParticleHelixFlow', 'Add', 'C_Tracker2_1', 'PythonGeo', 'Camera3', 'HSVTool', 'Reconcile3D', 'Convolve2', 'F_WireRemoval', 'MergeGeo', 'Camera4', 'DepthGenerator1_0', 'SoftClip', 'MarkerRemoval', 'Saturation', 'F_MatchGrade', 'Vectorfield', 'MotionBlur2D', 'OneView', 'BlinkScript', 'AddSTMap', 'PoissonMesh', 'OCIODisplay', 'AudioRead', 'PreviewSurface', 'TransformGeo', 'OCIOLookTransform', 'ParticleRender', 'Multiply', 'DustBust', 'ProcGeo', 'ParticleDirection', 'UVProject', 'EdgeExtend', 'CopyMetaData', 'DeepCrop', 'GeoPython', 'Text2', 'Camera2', 'SmartVector', 'EdgeDetect', 'ReLight', 'UnmultColor', 'Histogram', 'Input', 'PixelSum', 'F_Align', 'Convolve', 'Light4', 'ParticleProjectDisplace', 'ViewerGain', 'TimeBlur', 'BlockGPU', 'DeepRecolor', 'EXPTool', 'TimeToDepth', 'Compare', 'CCrosstalk', 'DisplaceGeo', 'Scene', 'ErrorIop', 'Dissolve', 'Roto', 'Keylight', 'Project3D', 'DeepSample', 'MotionBlur', 'Radial', 'ViewerCaptureOp', 'PositionToPoints2', 'Refraction', 'GeoCameraTrackerPoints1_0', 'DrawCursorShaderOp', 'GenerateLUTGeo', 'LensDistortion1_0', 'Transmission', 'Cylinder', 'NoTimeBlur', 'OCIOColorSpace', 'Primatte3', 'SphericalMap', 'ScannedGrain', 'OFlow2', 'GeoBakedPoints', 'ParticleCurve', 'IBKGizmoV3', 'ParticleColorByAge', 'AppendClip', 'TwistGeo', 'DepthToPoints', 'GeoDisplace', 'Noise', 'TextureSampler', 'Merge', 'GPUOp', 'ColorTransfer', 'Colorspace', 'DeepRead', 'ReadGeo2', 'TemporalMedian', 'ViewerDitherHighFrequency', 'ParticleGrid', 'GeoTwist', 'Premult', 'VectorBlur2', 'ViewerDitherLowFrequency', 'Axis2', 'GeoSelector', 'ViewerProcess_None', 'CatFileCreator', 'HueCorrect', 'Reflection', 'ParticleCache', 'ProjectionSolver1_0', 'ParticleMerge', 'Primatte', 'CheckerBoard2', 'Bokeh', 'F_Kronos', 'TextureMap', 'GeoNoise', 'GeoInstance', 'GenerateLUT', 'DualBlend', 'MotionBlur3D', 'VolumeRays', 'TimeBlend', 'C_CameraSolver2_1', 'C_Stitcher2_1', 'ApplyMaterial', 'BumpMat', 'MergeExpression', 'PointsGenerator', 'IT8_Reader', 'GeoSetVariant', 'ParticleDirectionalForce', 'ParticleSpawn', 'GeoIsolate', 'DeepHoldout', 'Assert', 'Upscale', 'GeoTransform', 'BasicMaterial', 'ParticleCylinderFlow', 'IBKSplit', 'SplineWarp2', 'SplineWarp', 'LevelSet', 'Camera', 'ParticleToImage', 'ZRMerge', 'IT8_Writer', 'Transform', 'NodeWrapper', 'Position', 'DirectLight1', 'Specular', 'InternalTimelineDefaultInput', 'GridWarp2', 'ParticleMove', 'Mirror', 'Axis', 'ReadGeo', 'BumpBoss', 'UpRez', 'GridWarpTracker', 'Inpaint', 'RotoPaint', 'Grid', 'Emboss', 'Difference', 'ParticleSpeedLimit', 'HistEQ', 'DeepColorCorrect2', 'ChannelSelector', 'Unwrap', 'CameraShake', 'DeepFromFrames', 'C_AlphaGenerator2_1', 'remove32p', 'GeoBindMaterial', 'Project3D2', 'InvFFT', 'Card', 'Modeler1_0', 'Paint', 'ModelBuilder', 'CMSTestPattern', 'Phong', 'ScanlineRender2', 'Shuffle2', 'ParticleDrag', 'FieldSelect', 'Laplacian', 'GeoNormals', 'Matrix', 'PrintMetaData', 'Text', 'GeoXformPrim', 'SphericalTransform', 'C_GlobalWarp2_1', 'Axis4', 'Light3', 'ParticleKill', 'GeoPrune', 'Group', 'Precomp', 'ParticleTurbulence', 'DeepVolumeMaker', 'ViewerInterlacedStereo', 'PixelStat', 'FnNukeMultiTypeOpIop', 'ParticleDrag2', 'Kronos', 'GeoCameraTrackerPoints', 'Diffuse', 'ParticleFuse', 'TimeOffset', 'Denoise2', 'C_DisparityGenerator2_1', 'PlanarTracker', 'ViewerWipe', 'GeoDuplicate', 'CameraShake3', 'Expression', 'Sparkles', 'CCorrect', 'ViewerSaturation', 'DeepColorCorrect', 'GeoViewScene', 'TransformMasked', 'ParticleGravity', 'Wireframe', 'LiveGroup', 'Deblur', 'IBK', 'GodRays', 'FishEye', 'DeepReformat', 'Shuffle1', 'FFTMultiply', 'STMap', 'VectorDistort', 'ZDefocus2', 'FillShader', 'SplineWarp3', 'Shuffle', 'Blocky', 'IBKEdge', 'CopyRectangle', 'Tile', 'C_Blur2_1', 'LookupGeo', 'Remove', 'DeepFromImage', 'ParticleInfo', 'Grade', 'GeoSphere', 'ParticleMotionAlign', 'AmbientOcclusion', 'DeepOmit', 'Gamma', 'Reformat', 'CrosstalkGeo', 'Blend', 'ParticleExpression', 'DeepClip', 'IBK2Gizmo', 'MinColor', 'ExecuteTreeMT', 'Tracker', 'DeepShift', 'Dilate', 'Sharpen', 'MergeLayerShader', 'Glint', 'CubeObj', 'CardObj', 'Sampler', 'DeepToImage', 'PanelNode', 'ParticlePointForce', 'Mocha VR (legacy)', 'TimeWarp', 'DirectLight', 'GeoExport', 'SphereToLatLongMap', 'TVIscale', 'ModifyRIB', 'ProjectionSolver', 'ScanlineRender', 'GeoTrilinearWarp', 'C_GenerateMap2_1', 'SphereObj', 'ParticleWind', 'GeoBakedMesh', 'GridWarp', 'DeepMask', 'JoinViews', 'Card3D', 'Median', 'ColorTransferWrapper', 'Profile', 'VariableGroup', 'TimeShift', 'ParticleBounce', 'LogGeo', 'PerspDistort', 'Tracker3', 'Flare', 'OCIONamedTransform', 'GeoScript', 'TimeEcho', 'LensDistortion2', 'MixViews', 'OCIOCDLTransform', 'DeepToPoints', 'FnNukeMultiTypeOpGeoOp', 'HueShift', 'Copy', 'Stabilize2D', 'DeepToImage2', 'ParticleSystem', 'MatchGrade', 'Clamp', 'Blur', 'IBKColourV3', 'F_VectorGenerator', 'Rectangle', 'ClipTest', 'ShuffleViews', 'CompareMetaData', 'ReConverge', 'Fill', 'GeoCylinder', 'GeoImport', 'Posterize'}
-TemplateStatus = Literal["OK", "MISSING_NODES", "READ_ERROR", "FILE_TOO_LARGE"]
 
 
 def is_running_in_nuke() -> bool:
@@ -112,58 +170,6 @@ def list_nk_files(folder_path: str) -> List[str]:
 IGNORED_WORDS: Set[str] = {"Root"}
 
 
-class Template(TypedDict):
-    """Typed dictionary describing one scanned template entry.
-
-    The keys mirror the fields stored in the scanner cache and consumed
-    by the UI. Every value is populated by :func:`scan_templates`,
-    although several may be ``None`` when the file could not be parsed
-    or when the template is project-agnostic.
-
-    Attributes:
-        name: Display name of the template, derived from the filename
-            with the ``.nk`` extension stripped.
-        path: Absolute path to the source ``.nk`` file.
-        missing_nodes: Sorted list of node class names referenced by the
-            template that are not present in the user's current Nuke
-            environment. Empty when the template is fully resolvable.
-        errors: Free-form error string when parsing failed, otherwise
-            ``None``.
-        status: One of the strings declared by :data:`TemplateStatus`.
-            ``"OK"`` indicates a healthy template, ``"MISSING_NODES"``
-            that one or more plugins are absent, ``"READ_ERROR"`` that
-            the file could not be parsed, and ``"FILE_TOO_LARGE"`` that
-            the file exceeded :data:`settings.MAX_FILE_SIZE_BYTES`.
-        is_stamps: ``True`` if the template appears to depend on the
-            Stamps plugin by Adrian Pueyo, detected via signature
-            strings in the file.
-        has_gizmos: ``True`` if any node class in the template falls
-            outside :data:`CORE_NODES`, indicating a dependency on
-            external gizmos or third-party plugins.
-        tags: Tag strings associated with the template, merged from
-            manual user metadata and the auto-tag rule engine.
-        fps: Frames-per-second declared by the template's ``Root``
-            block, or ``None`` for project-agnostic templates.
-        resolution: ``(width, height)`` declared by the template's
-            ``Root`` block, or ``None`` for project-agnostic templates.
-        colorspace: Colour-management value declared by the template's
-            ``Root`` block, or ``None`` for project-agnostic templates.
-        project_settings_mode: Either ``"ROOT_SETTINGS"`` when project
-            settings were extracted from a ``Root`` block, or
-            ``"AGNOSTIC"`` when the template carries no ``Root`` block.
-    """
-    name: str
-    path: str
-    missing_nodes: List[str]
-    errors: Optional[str]
-    status: Optional[TemplateStatus]
-    is_stamps: Optional[bool]
-    has_gizmos: Optional[bool]
-    tags: List[str]
-    fps: Optional[float]
-    resolution: Optional[Tuple[int, int]]
-    colorspace: Optional[str]
-    project_settings_mode: Optional[str]
 
 
 def extract_root_block(text: str) -> Optional[str]:
@@ -179,7 +185,7 @@ def extract_root_block(text: str) -> Optional[str]:
         text: Raw contents of a ``.nk`` file as a single string.
 
     Returns:
-        str | None: The body of the ``Root`` block if one is present,
+        str | None: The body of the ``Root`` blocßk if one is present,
         or ``None`` for project-agnostic templates that contain no
         ``Root`` declaration.
     """

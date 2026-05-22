@@ -40,6 +40,22 @@ else:
     except ImportError:
         from PySide2 import QtWidgets, QtCore, QtGui
 from .scanner import paste_template
+def exec_dialog(dialog):
+    """Compatible dialog exec for PySide2 and PySide6."""
+    if hasattr(dialog, "exec"):
+        return dialog.exec()
+    return dialog.exec_()
+
+
+def delete_on_close(widget):
+    """Mark a Qt widget for deletion when closed."""
+    widget.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+
+def exec_menu(menu, position):
+    """Compatible menu exec for PySide2 and PySide6."""
+    if hasattr(menu, "exec"):
+        return menu.exec(position)
+    return menu.exec_(position)
 
 
 def get_nuke_main_window():
@@ -58,11 +74,21 @@ def get_nuke_main_window():
         case by parenting their dialogs to ``None``, which produces a
         free-floating top-level window.
     """
-    for obj in QtWidgets.QApplication.topLevelWidgets():
-        if obj.inherits('QMainWindow') and obj.metaObject().className() == 'Foundry::UI::DockMainWindow':
-            return obj
-    return None
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        return None
 
+    for obj in app.topLevelWidgets():
+        try:
+            if (
+                obj.inherits("QMainWindow")
+                and obj.metaObject().className() == "Foundry::UI::DockMainWindow"
+            ):
+                return obj
+        except Exception:
+            pass
+
+    return None
 
 class SaveTemplateDialog(QtWidgets.QDialog):
     """A dialog for saving new templates from Nuke's node graph.
@@ -309,8 +335,9 @@ class TemplateManagerUI(QtWidgets.QDialog):
             scanner pass.
     """
 
-    def __init__(self, templates, has_stamps):
-        super().__init__()
+    def __init__(self, templates, has_stamps, parent=None):
+        super().__init__(parent)
+        delete_on_close(self)
         self.alltemplates = templates
         self.has_stamps = has_stamps
         self.base_template_paths = settings.get_effective_template_paths()
@@ -415,20 +442,34 @@ class TemplateManagerUI(QtWidgets.QDialog):
             tuple: A 3-tuple of ``(proj_display, proj_raw, hierarchy)`` where *hierarchy*
                 is a list of sub-folder display names below the project root.
         """
+        template_norm = os.path.normcase(os.path.normpath(template_path))
+
         for root_path in self.base_template_paths:
-            if template_path.startswith(root_path):
-                rel_path = os.path.relpath(template_path, root_path)
-                dir_path = os.path.dirname(rel_path)
-                if not dir_path:
-                    return "My Templates", "My Templates", []
-                folders = dir_path.replace('\\', '/').split('/')
-                proj_raw = folders[0]
-                proj_display = proj_raw.replace("_", " ").title()
-                if len(folders) > 1:
-                    hierarchy = [f.replace("_", " ").title() for f in folders[1:]]
-                else:
-                    hierarchy = []
-                return proj_display, proj_raw, hierarchy
+            root_norm = os.path.normcase(os.path.normpath(root_path))
+
+            try:
+                if os.path.commonpath([template_norm, root_norm]) != root_norm:
+                    continue
+            except ValueError:
+                continue
+
+            rel_path = os.path.relpath(template_path, root_path)
+            dir_path = os.path.dirname(rel_path)
+
+            if not dir_path:
+                return "My Templates", "My Templates", []
+
+            folders = dir_path.replace("\\", "/").split("/")
+            proj_raw = folders[0]
+            proj_display = proj_raw.replace("_", " ").title()
+
+            if len(folders) > 1:
+                hierarchy = [f.replace("_", " ").title() for f in folders[1:]]
+            else:
+                hierarchy = []
+
+            return proj_display, proj_raw, hierarchy
+
         return "Uncategorized", "Uncategorized", []
 
     def group_templates_by_project(self):
@@ -552,9 +593,9 @@ class TemplateManagerUI(QtWidgets.QDialog):
 
         def custom_sort_key(b):
             latest_tpl = grouped_templates[b][0][1]
-            if self.current_sort_col == 2:
+            if self.current_sort_col == 3:
                 return (latest_tpl.get("has_gizmos", False), b)
-            elif self.current_sort_col == 3:
+            elif self.current_sort_col == 2:
                 return (latest_tpl["status"], b)
             elif self.current_sort_col == 4:
                 tags = latest_tpl.get("tags", [])
@@ -819,26 +860,45 @@ class TemplateManagerUI(QtWidgets.QDialog):
                         btn_import = msg.addButton("Just Import Nodes", QtWidgets.QMessageBox.NoRole)
                         btn_cancel = msg.addButton("Cancel", QtWidgets.QMessageBox.RejectRole)
 
-                        msg.exec_()
+                        exec_dialog(msg)
                         clicked_btn = msg.clickedButton()
-
-                        if clicked_btn == btn_cancel or clicked_btn is None:
-                            return
 
                         if clicked_btn == btn_update:
                             if tpl_fps:
-                                nuke.root().knob('fps').setValue(float(tpl_fps))
+                                try:
+                                    nuke.root().knob("fps").setValue(float(tpl_fps))
+                                except Exception as e:
+                                    print("Template Manager: failed to set fps:", e)
+
                             if tpl_resolution:
                                 try:
-                                    nuke.root().knob('format').setValue(tpl_resolution)
-                                except Exception:
-                                    pass
+                                    width, height = tpl_resolution
+                                    format_name = "TemplateManager_{0}x{1}".format(width, height)
+
+                                    # Add a temporary/named Nuke format if it does not already exist.
+                                    existing_names = [f.name() for f in nuke.formats()]
+                                    if format_name not in existing_names:
+                                        nuke.addFormat("{0} {1} 1.0 {2}".format(width, height, format_name))
+
+                                    nuke.root().knob("format").setValue(format_name)
+
+                                except Exception as e:
+                                    print("Template Manager: failed to set format:", e)
+
                             if tpl_clr:
                                 try:
-                                    nuke.root().knob('colorManagement').setValue("OCIO")
-                                    nuke.root().knob('OCIO_config').setValue(tpl_clr)
-                                except Exception:
-                                    pass
+                                    root = nuke.root()
+
+                                    if tpl_clr in ("Nuke", "OCIO", "ACES", "custom"):
+                                        if root.knob("colorManagement"):
+                                            root.knob("colorManagement").setValue(tpl_clr)
+
+                                    elif root.knob("colorManagement") and root.knob("OCIO_config"):
+                                        root.knob("colorManagement").setValue("OCIO")
+                                        root.knob("OCIO_config").setValue(tpl_clr)
+
+                                except Exception as e:
+                                    print("Template Manager: failed to set colour management:", e)
             except Exception as e:
                 print("Settings check failed:", e)
 
@@ -966,11 +1026,11 @@ class TemplateManagerUI(QtWidgets.QDialog):
         batch_tag_action = menu.addAction("Batch Tag ({0} selected)".format(len(valid_items)))
         auto_tag_action = menu.addAction("Re-Evaluate Auto-Tags")
 
-        action = menu.exec_(self.tree_widget.viewport().mapToGlobal(position))
+        action = exec_menu(menu, self.tree_widget.viewport().mapToGlobal(position))
 
         if action == batch_tag_action:
             dialog = BatchTagDialog(parent=self)
-            if not dialog.exec_():
+            if not exec_dialog(dialog):
                 return
 
             new_tags = dialog.tags
@@ -1048,17 +1108,28 @@ class TemplateManagerUI(QtWidgets.QDialog):
     def save_new_template(self):
         """Run the in-UI Save Template flow against the current Nuke selection.
 
-        Builds ``projects_dict`` (display name → set of known subfolder paths) and
+        Captures the current script's root settings (format, fps,
+        colorManagement, OCIO_config) into a ``template_context`` dict, or
+        sets it to ``None`` when the settings match the agnostic defaults
+        (2048x1556, 24fps, "Nuke" colorManagement).
+
+        Builds ``projects_dict`` (display name -> set of known subfolder paths) and
         ``project_raw_map`` from the currently loaded templates, then opens
         :class:`SaveTemplateDialog`. On acceptance, resolves the final save path
         via :func:`saves.get_save_path`, optionally prompts for overwrite
-        confirmation, and writes the nodes with ``nuke.nodeCopy``.
-        It also intercepts Read nodes and prompts the user to convert them to Placeholders.
+        confirmation, and writes the nodes with ``nuke.nodeCopy``. Because
+        ``nuke.nodeCopy`` only copies nodes and not project-level settings,
+        a ``Root { ... }`` block built from ``template_context`` is then
+        prepended to the saved ``.nk`` file when a non-agnostic context
+        was captured.
+
+        It also intercepts Read nodes and prompts the user to convert them to
+        Placeholders.
 
         Any Read-to-Placeholder swap performed during the save is
         reverted by an undo in the ``finally`` block so the artist's
         Nuke script is left exactly as it was before the save.
-        """
+    """
         try:
             selected_nodes = nuke.selectedNodes()
             if not selected_nodes:
@@ -1106,7 +1177,7 @@ class TemplateManagerUI(QtWidgets.QDialog):
 
         if read_nodes:
             dialog = PlaceholderDialog(read_nodes, parent=self)
-            if dialog.exec_():
+            if exec_dialog(dialog):
                 nodes_to_convert = dialog.get_nodes_to_convert()
             else:
                 return
@@ -1131,17 +1202,32 @@ class TemplateManagerUI(QtWidgets.QDialog):
             parent=self,
         )
 
-        if dialog.exec_():
-            base_name, folder_path, do_version = dialog.get_save_data()
-            if not base_name:
-                nuke.message("Template Name cannot be empty.")
+        try:
+            accepted = exec_dialog(dialog)
+
+            if not accepted:
                 return
 
-            final_file_path = saves.get_save_path(folder_path, base_name, auto_version=do_version)
-            if not do_version and os.path.exists(final_file_path):
-                warning_msg = "A template named '{0}' already exists in this location.\n\nDo you want to update/overwrite it?".format(os.path.basename(final_file_path))
-                if not nuke.ask(warning_msg):
-                    return
+            base_name, folder_path, do_version = dialog.get_save_data()
+
+        finally:
+            try:
+                dialog.deleteLater()
+            except Exception:
+                pass
+
+        if not base_name:
+            nuke.message("Template Name cannot be empty.")
+            return
+
+        final_file_path = saves.get_save_path(folder_path, base_name, auto_version=do_version)
+
+        if not do_version and os.path.exists(final_file_path):
+            warning_msg = "A template named '{0}' already exists in this location.\n\nDo you want to update/overwrite it?".format(
+                os.path.basename(final_file_path)
+            )
+            if not nuke.ask(warning_msg):
+                return
 
             try:
                 os.makedirs(folder_path, exist_ok=True)
@@ -1150,12 +1236,12 @@ class TemplateManagerUI(QtWidgets.QDialog):
                     nuke.Undo().begin("Template Save Placeholders")
                     for r in nodes_to_convert:
                         name = r.name()
-                        file_path = r.knob('file').value()
+                        file_path = r.knob("file").value()
                         base_file = os.path.basename(file_path) if file_path else "Plate"
 
                         p = nuke.nodes.NoOp(name="PLACEHOLDER_" + name)
-                        p.knob('tile_color').setValue(0xff0000ff)
-                        p.knob('label').setValue("REPLACE WITH:\n" + base_file)
+                        p.knob("tile_color").setValue(0xff0000ff)
+                        p.knob("label").setValue("REPLACE WITH:\n" + base_file)
 
                         for dep in r.dependent():
                             for i in range(dep.inputs()):
@@ -1249,7 +1335,7 @@ class TemplateManagerUI(QtWidgets.QDialog):
         names_to_convert = []
         if read_data:
             dialog = PlaceholderDialog(read_data, parent=self)
-            if dialog.exec_():
+            if exec_dialog(dialog):
                 names_to_convert = dialog.get_nodes_to_convert()
             else:
                 return False
@@ -1353,6 +1439,7 @@ class BatchTagDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        delete_on_close(self)
         self.setWindowTitle("Batch Tag Templates")
         self.resize(350, 100)
 
@@ -1449,6 +1536,7 @@ class RuleWidget(QtWidgets.QWidget):
 
     def __init__(self, tag_name="", rule_data=None, parent=None):
         super().__init__(parent)
+        delete_on_close(self)
         if rule_data is None:
             rule_data = {}
 

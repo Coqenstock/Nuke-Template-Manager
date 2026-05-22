@@ -21,7 +21,14 @@ import nuke
 from . import settings
 from . import saves
 from .scanner import scan_templates, get_available_nodes
-from .ui import TemplateManagerUI
+from .ui import (
+    TemplateManagerUI,
+    SaveTemplateDialog,
+    PlaceholderDialog,
+    AutoTagRulesDialog,
+    get_nuke_main_window,
+    exec_dialog,
+)
 if TYPE_CHECKING:
     from PySide6 import QtCore
 else:
@@ -29,6 +36,8 @@ else:
         from PySide6 import QtCore
     except ImportError:
         from PySide2 import QtCore
+
+tm_window = None
 
 
 def launch_ui() -> None:
@@ -63,8 +72,32 @@ def launch_ui() -> None:
         all_templates.extend(scan_templates(path, nodes))
 
     global tm_window
-    tm_window = TemplateManagerUI(all_templates, has_stamps)  # type: ignore[reportCallIssue]
+
+    try:
+        if tm_window is not None:
+            tm_window.close()
+            tm_window.deleteLater()
+    except Exception:
+        pass
+
+    nuke_window = get_nuke_main_window()
+
+    tm_window = TemplateManagerUI(
+        all_templates,
+        has_stamps,
+        parent=nuke_window
+    )
+
+    app = QtCore.QCoreApplication.instance()
+    if app is not None:
+        try:
+            app.aboutToQuit.connect(tm_window.close)
+        except Exception:
+            pass
+
     tm_window.show()
+    tm_window.raise_()
+    tm_window.activateWindow()
 
 
 def launch_save_ui() -> None:
@@ -116,6 +149,7 @@ def launch_save_ui() -> None:
         does not require the main :class:`ui.TemplateManagerUI`
         window to be open.
     """
+    from .ui import SaveTemplateDialog, get_nuke_main_window
     try:    
         selected_nodes = nuke.selectedNodes()
         if not selected_nodes:
@@ -191,7 +225,7 @@ def launch_save_ui() -> None:
             projects_dict[proj_display].add("/".join(folders[1:]))
 
         for f in files:
-            if f.endswith(".nk"):
+            if f.lower().endswith(".nk"):
                 f_no_ext = f.replace(".nk", "")
                 match = re.search(r'_v(\d+)$', f_no_ext, re.IGNORECASE)
                 if match:
@@ -252,7 +286,7 @@ def launch_save_ui() -> None:
 
         next_v = max(script_v, db_max_v + 1)
 
-        msg = QtWidgets.QMessageBox()
+        msg = QtWidgets.QMessageBox(get_nuke_main_window())
         msg.setWindowTitle("Template Match Found")
 
         if script_v > db_max_v:
@@ -268,7 +302,7 @@ def launch_save_ui() -> None:
         btn_cancel = msg.addButton("Cancel", QtWidgets.QMessageBox.RejectRole)
 
         msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
-        msg.exec_()
+        exec_dialog(msg)
 
         clicked = msg.clickedButton()
 
@@ -286,116 +320,132 @@ def launch_save_ui() -> None:
             if template_context:
                 root_lines = [
                     "Root {",
-                    f' fps {template_context["fps"]}',
-                    f' format "{template_context["w"]} {template_context["h"]}"'
+                    " fps {0}".format(template_context["fps"]),
+                    " format \"{0} {1}\"".format(template_context["w"], template_context["h"])
                 ]
 
                 if template_context["cm"]:
-                    root_lines.append(f' colorManagement {template_context["cm"]}')
+                    root_lines.append(" colorManagement {0}".format(template_context["cm"]))
                 if template_context["ocio"]:
-                    root_lines.append(f' OCIO_config {template_context["ocio"]}')
-                    
+                    root_lines.append(" OCIO_config {0}".format(template_context["ocio"]))
+
                 root_lines.append("}\n")
                 root_string = "\n".join(root_lines)
                 
                 try:
                     target_file = final_file 
                     
-                    with open(target_file, 'r') as f:
+                    with open(target_file, "r", encoding="utf-8") as f:
                         original_script = f.read()
-                    
-                    with open(target_file, 'w') as f:
+
+                    with open(target_file, "w", encoding="utf-8") as f:
                         f.write(root_string + original_script)
                 except Exception as e:
                     print("Failed to inject Root block:", e)
             nuke.message("Template Fast-Saved successfully as:\n" + os.path.basename(final_file))
             return
 
-    from .ui import SaveTemplateDialog
-    dialog = SaveTemplateDialog(projects_dict, project_raw_map, best_proj, default_root)
+    dialog = SaveTemplateDialog(
+        projects_dict,
+        project_raw_map,
+        best_proj,
+        default_root,
+        parent=get_nuke_main_window()
+    )
 
-    if dialog.exec_():
-        base_name, folder_path, do_version = dialog.get_save_data()
+    try:
+        accepted = exec_dialog(dialog)
 
-        if not base_name:
-            nuke.message("Template Name cannot be empty.")
+        if accepted:
+            base_name, folder_path, do_version = dialog.get_save_data()
+        else:
             return
 
-        final_file_path = saves.get_save_path(folder_path, base_name, auto_version=do_version)
-
-        if not do_version and os.path.exists(final_file_path):
-            warning_msg = "A template named '{0}' already exists.\n\nOverwrite it?".format(os.path.basename(final_file_path))
-            if not nuke.ask(warning_msg):
-                return
-
-        os.makedirs(folder_path, exist_ok=True)
-
-        read_nodes = [n for n in selected_nodes if n.Class() == "Read"]
-        nodes_to_convert = []
-
-        if read_nodes:
-            from .ui import PlaceholderDialog, get_nuke_main_window
-            nuke_win = get_nuke_main_window()
-            ph_dialog = PlaceholderDialog(read_nodes, parent=nuke_win)
-
-            if ph_dialog.exec_():
-                nodes_to_convert = ph_dialog.get_nodes_to_convert()
-            else:
-                return
-
+    finally:
         try:
-            if nodes_to_convert:
-                nuke.Undo().begin("Template Save Placeholders")
-                for r in nodes_to_convert:
-                    name = r.name()
-                    file_path = r.knob('file').value()
-                    base_file = os.path.basename(file_path) if file_path else "Plate"
+            dialog.deleteLater()
+        except Exception:
+            pass
 
-                    p = nuke.nodes.NoOp(name="PLACEHOLDER_" + name)
-                    p.knob('tile_color').setValue(0xff0000ff)
-                    p.knob('label').setValue("REPLACE WITH:\n" + base_file)
+    if not base_name:
+        nuke.message("Template Name cannot be empty.")
+        return
 
-                    for dep in r.dependent():
-                        for i in range(dep.inputs()):
-                            if dep.input(i) == r:
-                                dep.setInput(i, p)
+    final_file_path = saves.get_save_path(folder_path, base_name, auto_version=do_version)
 
-                    r.setSelected(False)
-                    p.setSelected(True)
-                nuke.Undo().end()
+    if not do_version and os.path.exists(final_file_path):
+        warning_msg = "A template named '{0}' already exists.\n\nOverwrite it?".format(
+            os.path.basename(final_file_path)
+        )
+        if not nuke.ask(warning_msg):
+            return
 
-            nuke.nodeCopy(final_file_path)
-            if template_context:
-                root_lines = [
-                    "Root {",
-                    f' fps {template_context["fps"]}',
-                    f' format "{template_context["w"]} {template_context["h"]}"'
-                ]
-                
-                if template_context["cm"]:
-                    root_lines.append(f' colorManagement {template_context["cm"]}')
-                if template_context["ocio"]:
-                    root_lines.append(f' OCIO_config {template_context["ocio"]}')
-                    
-                root_lines.append("}\n")
-                root_string = "\n".join(root_lines)
-                
-                try:
-                    target_file = final_file_path 
-                    
-                    with open(target_file, 'r') as f:
-                        original_script = f.read()
-                    
-                    with open(target_file, 'w') as f:
-                        f.write(root_string + original_script)
-                except Exception as e:
-                    print("Failed to inject Root block:", e)
-            nuke.message("Template saved successfully as:\n" + os.path.basename(final_file_path))
+    os.makedirs(folder_path, exist_ok=True)
 
-        finally:
-            if nodes_to_convert:
-                nuke.Undo().undo()
+    read_nodes = [n for n in selected_nodes if n.Class() == "Read"]
+    nodes_to_convert = []
 
+    if read_nodes:
+        from .ui import PlaceholderDialog, get_nuke_main_window
+        nuke_win = get_nuke_main_window()
+        ph_dialog = PlaceholderDialog(read_nodes, parent=nuke_win)
+        if exec_dialog(ph_dialog):
+            nodes_to_convert = ph_dialog.get_nodes_to_convert()
+        else:
+            return
+
+    try:
+        if nodes_to_convert:
+            nuke.Undo().begin("Template Save Placeholders")
+            for r in nodes_to_convert:
+                name = r.name()
+                file_path = r.knob("file").value()
+                base_file = os.path.basename(file_path) if file_path else "Plate"
+
+                p = nuke.nodes.NoOp(name="PLACEHOLDER_" + name)
+                p.knob("tile_color").setValue(0xff0000ff)
+                p.knob("label").setValue("REPLACE WITH:\n" + base_file)
+
+                for dep in r.dependent():
+                    for i in range(dep.inputs()):
+                        if dep.input(i) == r:
+                            dep.setInput(i, p)
+
+                r.setSelected(False)
+                p.setSelected(True)
+            nuke.Undo().end()
+
+        nuke.nodeCopy(final_file_path)
+
+        if template_context:
+            root_lines = [
+                "Root {",
+                " fps {0}".format(template_context["fps"]),
+                " format \"{0} {1}\"".format(template_context["w"], template_context["h"])
+            ]
+
+            if template_context["cm"]:
+                root_lines.append(" colorManagement {0}".format(template_context["cm"]))
+            if template_context["ocio"]:
+                root_lines.append(" OCIO_config {0}".format(template_context["ocio"]))
+
+            root_lines.append("}\n")
+            root_string = "\n".join(root_lines)
+
+            try:
+                with open(final_file_path, "r", encoding="utf-8") as f:
+                    original_script = f.read()
+
+                with open(final_file_path, "w", encoding="utf-8") as f:
+                    f.write(root_string + original_script)
+            except Exception as e:
+                print("Failed to inject Root block:", e)
+
+        nuke.message("Template saved successfully as:\n" + os.path.basename(final_file_path))
+
+    finally:
+        if nodes_to_convert:
+            nuke.Undo().undo()
 
 def launch_rules_editor() -> None:
     """Open the auto-tag rules editor as a modal dialog.
@@ -412,8 +462,14 @@ def launch_rules_editor() -> None:
     Template Manager window are unaffected until the user re-runs
     the Re-Evaluate Auto-Tags context-menu action.
     """
-    from .ui import AutoTagRulesDialog, get_nuke_main_window
+    from .ui import AutoTagRulesDialog
 
-    nuke_window = get_nuke_main_window()
-    dialog = AutoTagRulesDialog(parent=nuke_window)
-    dialog.exec_()
+    dialog = AutoTagRulesDialog(parent=get_nuke_main_window())
+
+    try:
+        exec_dialog(dialog)
+    finally:
+        try:
+            dialog.deleteLater()
+        except Exception:
+            pass
