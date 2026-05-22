@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.1.1 (2026-05-22)
+
+### Bug Fixes
+
+- Improve template manager stability and compatibility
+  ([`50c6535`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/50c65359c87c1d77b50c5bd6662c72c043b354d1))
+
+
 ## v2.1.0 (2026-05-11)
 
 ### Features
