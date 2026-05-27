@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.1.2 (2026-05-27)
+
+### Bug Fixes
+
+- **ui**: Show latest template version in version dropdown
+  ([`a0b9367`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/a0b936787d523b1a4e09db7642aba47635fdcefc))
+
+
 ## v2.1.1 (2026-05-22)
 
 ### Bug Fixes
