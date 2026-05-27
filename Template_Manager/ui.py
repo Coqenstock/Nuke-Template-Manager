@@ -708,7 +708,7 @@ class TemplateManagerUI(QtWidgets.QDialog):
                         temp_parent = temp_parent.parent()
 
             if len(versions) > 1:
-                for v_num, old_tpl in versions[1:]:
+                for v_num, old_tpl in versions:
                     old_item = QtWidgets.QTreeWidgetItem(item)
                     old_item.setText(0, old_tpl['name'])
 
