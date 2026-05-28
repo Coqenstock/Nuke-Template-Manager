@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.2.0 (2026-05-28)
+
+### Features
+
+- Add about and contact dialog
+  ([`9bd7dea`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/9bd7dea127fb072a448c730343c68f9d48064a49))
+
+
 ## v2.1.2 (2026-05-27)
 
 ### Bug Fixes
