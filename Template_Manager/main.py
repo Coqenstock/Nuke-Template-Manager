@@ -28,6 +28,7 @@ from .ui import (
     AutoTagRulesDialog,
     get_nuke_main_window,
     exec_dialog,
+    show_about_dialog,
 )
 if TYPE_CHECKING:
     from PySide6 import QtCore
@@ -473,3 +474,7 @@ def launch_rules_editor() -> None:
             dialog.deleteLater()
         except Exception:
             pass
+
+def launch_about_dialog() -> None:
+    """Open the Template Manager About dialog from the Nuke menu."""
+    show_about_dialog(parent=get_nuke_main_window())

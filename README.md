@@ -24,3 +24,8 @@ For detailed instructions on configuring local/studio pipeline paths, tagging, a
 This tool includes a fully searchable, automated Sphinx manual detailing the core logic, classes, and parsing algorithms.
 
 **[Click here to read the official documentation](https://nuke-template-manager.readthedocs.io/)**
+
+## Contact
+Created by Marco Gilot.
+If you have any questions, feedback, or would like to discuss pipeline development opportunities, feel free to reach out:
+**Email: [marcogilot36@gmail.com](mailto:marcogilot36@gmail.com)**

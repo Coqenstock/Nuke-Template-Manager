@@ -40,6 +40,14 @@ else:
     except ImportError:
         from PySide2 import QtWidgets, QtCore, QtGui
 from .scanner import paste_template
+
+TOOL_NAME = "Nuke Template Manager"
+TOOL_AUTHOR = "Marco Gilot"
+TOOL_EMAIL = "marcogilot36@gmail.com"
+TOOL_GITHUB = "https://github.com/Coqenstock/Nuke-Template-Manager"
+TOOL_DESCRIPTION = "A Python-driven pipeline utility for standardizing Nuke templates."
+
+
 def exec_dialog(dialog):
     """Compatible dialog exec for PySide2 and PySide6."""
     if hasattr(dialog, "exec"):
@@ -57,6 +65,31 @@ def exec_menu(menu, position):
         return menu.exec(position)
     return menu.exec_(position)
 
+def show_about_dialog(parent=None):
+    """Display a native Qt About dialog with tool and contact details."""
+    about_text = (
+        "<h3>{0}</h3>"
+        "<p><b>Version:</b> {1}</p>"
+        "<p><b>Developed by:</b> {2}</p>"
+        "<p>{3}</p>"
+        "<br>"
+        "<p><b>Email:</b> <a href='mailto:{4}'>{4}</a></p>"
+        "<p><b>GitHub:</b> <a href='{5}'>{5}</a></p>"
+    ).format(
+        TOOL_NAME,
+        "2.1.2",
+        TOOL_AUTHOR,
+        TOOL_DESCRIPTION,
+        TOOL_EMAIL,
+        TOOL_GITHUB,
+    )
+
+    msg = QtWidgets.QMessageBox(parent)
+    msg.setWindowTitle("About {0}".format(TOOL_NAME))
+    msg.setTextFormat(QtCore.Qt.RichText)
+    msg.setText(about_text)
+    msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+    exec_dialog(msg)
 
 def get_nuke_main_window():
     """Locate Nuke's main dock window so dialogs can parent themselves to it.
@@ -349,12 +382,17 @@ class TemplateManagerUI(QtWidgets.QDialog):
         self.search_bar.setPlaceholderText("Search templates...")
         self.search_bar.textChanged.connect(self.filter_current_project)
 
+        about_btn = QtWidgets.QPushButton("?")
+        about_btn.setToolTip("About / Contact")
+        about_btn.clicked.connect(lambda: show_about_dialog(self))
+        self.layout.addWidget(about_btn, 0, 1, 1, 1)
+
         unique_tags = {tag for t in self.alltemplates for tag in t.get("tags", [])}
         autocomplete_list = sorted(["@" + tag for tag in unique_tags])
         self.completer = QtWidgets.QCompleter(autocomplete_list)
         self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.search_bar.setCompleter(self.completer)
-        self.layout.addWidget(self.search_bar, 0, 0, 1, 2)
+        self.layout.addWidget(self.search_bar, 0, 0, 1, 1)
 
         self.project_dropdown = QtWidgets.QComboBox()
         self.project_dropdown.currentIndexChanged.connect(self.refresh_tree)
