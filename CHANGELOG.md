@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.2.1 (2026-10-12)
+
+### Bug Fixes
+
+- Resolve JSON parsing error in example templatemanager.json
+  ([`9bfe99a`](https://github.com/Coqenstock/Nuke-Template-Manager/commit/9bfe99ab82e27d71bff983d173fe09b2c08e8655))
+
+
 ## v2.2.0 (2026-05-28)
 
 ### Features
